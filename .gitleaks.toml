@@ -8,7 +8,7 @@ useDefault = true   # CRITICAL — omitting this REPLACES all 160+ built-in rule
 description = "Spectro Cloud global allowlist"
 paths = [
   '''vendor/.*''', '''go\.sum''', '''package-lock\.json''', '''yarn\.lock''', '''pnpm-lock\.yaml''',
-  '''\.gitleaksignore''', '''tests/.*''',
+  '''\.gitleaksignore''',
 ]
 regexes = [
   '''(?i)EXAMPLE''', '''(?i)changeme''', '''(?i)placeholder''',
@@ -24,6 +24,13 @@ tags = ["spectrocloud"]
 [[rules]]
 id = "spectro-palette-api-key"
 description = "Palette API Key"
-regex = '''(?i)(palette[-_]?api[-_]?key|PALETTE_API_KEY)\s*[:=]\s*['"]?([a-zA-Z0-9\-_.]{20,})'''
+regex = '''(?i)(palette[-_]?api[-_]?key|PALETTE_API_KEY)\s*[:=]\s*['"]?([a-zA-Z0-9+/=_.-]{20,})'''
+secretGroup = 2
+tags = ["spectrocloud", "palette"]
+
+[[rules]]
+id = "spectro-palette-auth-token"
+description = "Palette auth token"
+regex = '''(?i)(palette[-_]?auth[-_]?token|PALETTE_AUTH_TOKEN)\s*[:=]\s*['"]?([a-zA-Z0-9._~+/-]{20,})'''
 secretGroup = 2
 tags = ["spectrocloud", "palette"]

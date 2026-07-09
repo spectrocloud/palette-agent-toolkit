@@ -1,0 +1,16 @@
+{
+  "name": "palette-agent-toolkit",
+  "description": "Spectro Cloud Palette — connect your AI assistant to Palette for cluster management, fleet health, and infrastructure operations.",
+  "owner": {
+    "name": "Spectro Cloud",
+    "url": "https://github.com/spectrocloud"
+  },
+  "plugins": [
+    {
+      "name": "palette",
+      "source": "plugins/palette",
+      "description": "Connect your AI assistant to Palette — query clusters, diagnose issues, and manage infrastructure using natural language.",
+      "category": "infrastructure"
+    }
+  ]
+}

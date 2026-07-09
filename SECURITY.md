@@ -29,8 +29,8 @@ Please include:
 
 ## Scope
 
-This repository ships binary releases and Claude Code / Codex / Cursor
-plugin manifests for `palette-mcp`. The MCP server's source code lives in
-a separate, private repository — if your report concerns the server's
-implementation rather than this repo's distribution artifacts, please still
-report it here and we'll route it internally.
+This repository ships binary releases and Claude Code plugin manifests for
+`palette-mcp`. The MCP server source is maintained separately — if your
+report concerns the server implementation rather than this repo's
+distribution artifacts, please still report it here and we'll route it
+internally.

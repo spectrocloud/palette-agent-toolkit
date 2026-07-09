@@ -1,10 +1,10 @@
 # Contributing to palette-agent-toolkit
 
 Thanks for your interest in contributing. This repo hosts binary releases
-and plugin/skill manifests for `palette-mcp` (Claude Code, Codex, and
-Cursor). The MCP server's source code lives in a separate, private
-repository — this repo doesn't take source-code contributions to the
-server itself, only to the manifests, skills, and docs here.
+and Claude Code plugin/skill manifests for `palette-mcp`. The MCP server
+source is maintained separately — this repo doesn't take source-code
+contributions to the server itself, only to the manifests, skills, and docs
+here.
 
 ## Before you start
 
@@ -42,7 +42,7 @@ are added. CI runs secret scanning and manifest/markdown linting on PRs.
 
 - Changes to the plugin/marketplace naming or directory structure — that's
   an active internal decision, raise it as an issue first rather than a PR.
-- New MCP tools — those live in the private server repo; this repo only
+- New MCP tools — those live with the server implementation; this repo only
   ships what the server already exposes.
 
 ## Code of Conduct
