@@ -1,0 +1,29 @@
+# Gitleaks configuration for palette-agent-toolkit. Keep the built-in rules
+# enabled and add Spectro Cloud-specific credential patterns.
+
+[extend]
+useDefault = true   # CRITICAL — omitting this REPLACES all 160+ built-in rules instead of extending them
+
+[allowlist]
+description = "Spectro Cloud global allowlist"
+paths = [
+  '''vendor/.*''', '''go\.sum''', '''package-lock\.json''', '''yarn\.lock''', '''pnpm-lock\.yaml''',
+  '''\.gitleaksignore''', '''tests/.*''',
+]
+regexes = [
+  '''(?i)EXAMPLE''', '''(?i)changeme''', '''(?i)placeholder''',
+  '''(?i)your[-_]?(api[-_]?key|token|secret)[-_]?here''',
+]
+
+[[rules]]
+id = "spectro-dso-token"
+description = "Spectro Cloud DSO Token"
+regex = '''dso_[a-zA-Z0-9]{32,}'''
+tags = ["spectrocloud"]
+
+[[rules]]
+id = "spectro-palette-api-key"
+description = "Palette API Key"
+regex = '''(?i)(palette[-_]?api[-_]?key|PALETTE_API_KEY)\s*[:=]\s*['"]?([a-zA-Z0-9\-_.]{20,})'''
+secretGroup = 2
+tags = ["spectrocloud", "palette"]

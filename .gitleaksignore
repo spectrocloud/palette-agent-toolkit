@@ -1,0 +1,3 @@
+# Gitleaks false-positive allowlist for this repo.
+# Add finding fingerprints (one per line) to suppress known false positives.
+# Rules are managed in .gitleaks.toml.
