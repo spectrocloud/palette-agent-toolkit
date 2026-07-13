@@ -1,0 +1,56 @@
+# PR validation for palette-agent-toolkit.
+#
+# Replaces CodeQL, which needs a compilable language this repo doesn't have
+# (manifests, JSON, markdown, and skill definitions only). This workflow
+# runs a secret scan and validates the manifest/content files shipped here.
+
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # gitleaks needs history to scan the PR's full commit range
+
+      - name: gitleaks scan
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Validate JSON manifests
+        run: |
+          set -euo pipefail
+          find . -name '*.json' -not -path './node_modules/*' -print0 \
+            | xargs -0 -n1 -I{} sh -c 'echo "checking {}"; python3 -m json.tool {} > /dev/null'
+
+      - name: Lint markdown
+        uses: DavidAnson/markdownlint-cli2-action@b4c9feab76d8025d1e83c653fa3990936df0e6c8 # v16
+        with:
+          globs: '**/*.md'

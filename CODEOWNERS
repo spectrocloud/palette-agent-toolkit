@@ -1,0 +1,8 @@
+# CODEOWNERS for palette-agent-toolkit
+#
+# Entries must be valid GitHub logins. Unresolvable owners (display names,
+# emails, or non-members) are silently ignored by GitHub, so review the
+# rendered CODEOWNERS in the repo UI after any change.
+
+# Global fallback — core maintainers.
+*   @jzhoucliqr @indrasvat @rishi-anand @KaushalDokania

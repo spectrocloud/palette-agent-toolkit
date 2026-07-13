@@ -1,0 +1,7 @@
+config:
+  MD013: false # line length: skill prompts intentionally keep long instructions together
+  MD022: false # headings in skill markdown are structured for agent parsing
+  MD032: false # lists in skill markdown are optimized for compact prompt text
+  MD033: false # allow placeholder syntax like <name> in examples
+  MD040: false # allow command/snippet fences without a language
+  MD060: false # allow compact tables in README files

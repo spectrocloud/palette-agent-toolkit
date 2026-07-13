@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "palette": {
+      "command": "palette-mcp",
+      "args": [],
+      "env": {
+        "PALETTE_HOST": "${PALETTE_HOST}",
+        "PALETTE_API_KEY": "${PALETTE_API_KEY}",
+        "PALETTE_AUTH_TOKEN": "${PALETTE_AUTH_TOKEN}",
+        "PALETTE_PROJECT_UID": "${PALETTE_PROJECT_UID}",
+        "PALETTE_CA_FILE": "${PALETTE_CA_FILE}",
+        "PALETTE_INSECURE_SKIP_VERIFY": "${PALETTE_INSECURE_SKIP_VERIFY}"
+      }
+    }
+  }
+}
