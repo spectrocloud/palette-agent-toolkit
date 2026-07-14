@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "palette",
-      "source": "plugins/palette",
+      "source": "./plugins/palette",
       "description": "Connect your AI assistant to Palette — query clusters, diagnose issues, and manage infrastructure using natural language.",
       "category": "infrastructure"
     }
