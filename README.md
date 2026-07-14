@@ -1,10 +1,10 @@
 # Palette Agent Toolkit
 
-Connect Claude Code to [Spectro Cloud Palette](https://www.spectrocloud.com/) for cluster management, fleet health checks, and infrastructure operations using natural language.
+Connect your AI assistant to [Spectro Cloud Palette](https://www.spectrocloud.com/) for cluster management, fleet health checks, and infrastructure operations using natural language.
 
 ## Prerequisites
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+- An MCP-capable client — [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Claude Desktop, Codex CLI, Gemini CLI, or Cursor
 - A Palette API key for your tenant
 - The `palette-mcp` binary on your `PATH`
 
@@ -13,7 +13,7 @@ Connect Claude Code to [Spectro Cloud Palette](https://www.spectrocloud.com/) fo
 Download a versioned release for your platform from [GitHub Releases](https://github.com/spectrocloud/palette-agent-toolkit/releases), then verify it against the matching checksums file:
 
 ```bash
-VERSION=v0.0.0-rc1
+VERSION=v0.4.0
 
 # Choose one:
 ASSET=palette-mcp_darwin_arm64.tar.gz  # macOS Apple Silicon
@@ -37,7 +37,7 @@ Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`.
 
 ## Configure environment
 
-Export these in your shell profile before launching Claude Code:
+Export these in your shell profile before launching your MCP client:
 
 ```bash
 export PALETTE_HOST="your-tenant.spectrocloud.com"
@@ -57,23 +57,99 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" \
 
 A `200` response means the key is valid.
 
-## Install the Claude plugin
+## Install the plugin (Claude Code & Claude Desktop)
 
-Register the marketplace (one-time):
+Both Claude Code and Claude Desktop install from the same marketplace.
+
+**Claude Code** — register the marketplace (one-time), then install the plugin:
 
 ```
 /plugin marketplace add spectrocloud/palette-agent-toolkit
-```
-
-Install the plugin:
-
-```
 /plugin install palette@palette-agent-toolkit
 ```
 
 Run `/reload-plugins` after installing. Confirm with `/mcp` — the palette server should show **connected**.
 
+**Claude Desktop** (marketplace support requires a recent Desktop build) — open Settings → Plugins → **Add**, enter `spectrocloud/palette-agent-toolkit`, then install the **palette** plugin from the synced marketplace.
+
 See [plugins/palette/README.md](plugins/palette/README.md) for skills, available MCP tools, and troubleshooting.
+
+## Use with other MCP clients
+
+`palette-mcp` is a standard stdio MCP server, so any MCP-capable client can run
+it. Install the binary and export the environment variables as above, then
+register the server with your client. The examples reference your exported shell
+variables where the client supports it, so your API key isn't written to a
+config file in plaintext.
+
+### Codex CLI
+
+Two ways to register the server — pick one:
+
+**Quick, writes your key to `~/.codex/config.toml` in plaintext:**
+
+```bash
+codex mcp add palette \
+  --env PALETTE_HOST="$PALETTE_HOST" \
+  --env PALETTE_API_KEY="$PALETTE_API_KEY" \
+  -- palette-mcp
+```
+
+**Keeps the key out of the config file** — edit `~/.codex/config.toml` directly
+and forward your already-exported shell variables by name instead:
+
+```toml
+[mcp_servers.palette]
+command = "palette-mcp"
+env_vars = ["PALETTE_HOST", "PALETTE_API_KEY", "PALETTE_PROJECT_UID"]
+```
+
+### Gemini CLI
+
+Add to `~/.gemini/settings.json` (or project-scoped `.gemini/settings.json`).
+Gemini expands `$VAR` references from your environment:
+
+```json
+{
+  "mcpServers": {
+    "palette": {
+      "command": "palette-mcp",
+      "env": {
+        "PALETTE_HOST": "$PALETTE_HOST",
+        "PALETTE_API_KEY": "$PALETTE_API_KEY",
+        "PALETTE_PROJECT_UID": "$PALETTE_PROJECT_UID"
+      }
+    }
+  }
+}
+```
+
+### Cursor
+
+Add to `~/.cursor/mcp.json` (global) or project-scoped `.cursor/mcp.json`.
+Cursor expands `${env:VAR}` references from your environment:
+
+```json
+{
+  "mcpServers": {
+    "palette": {
+      "command": "palette-mcp",
+      "env": {
+        "PALETTE_HOST": "${env:PALETTE_HOST}",
+        "PALETTE_API_KEY": "${env:PALETTE_API_KEY}",
+        "PALETTE_PROJECT_UID": "${env:PALETTE_PROJECT_UID}"
+      }
+    }
+  }
+}
+```
+
+Cursor asks you to approve a new MCP server before it loads — approve **palette**
+when prompted, or enable it from Cursor's MCP settings.
+
+`PALETTE_PROJECT_UID` is optional in every client — set it to scope all calls to
+one project. Every client runs read-only by default; write tools stay disabled
+unless the binary is launched with `--allow-write`.
 
 ## Skills (standalone install)
 
