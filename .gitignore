@@ -1,0 +1,26 @@
+# Secrets / env files
+.env.*
+*.env
+!.env.example
+
+# Local scratch and reports — never published
+.local/
+
+# Logs (repo root)
+/*.log
+
+# macOS
+.DS_Store
+
+# Editor state
+*.swp
+.idea/
+.vscode/
+
+# Tooling
+node_modules/
+
+# Claude Code — ignore personal/ephemeral state only;
+# shareable config (settings.json, agents/, commands/, skills/, hooks/) stays tracked
+.claude/settings.local.json
+.claude/hook-logs/

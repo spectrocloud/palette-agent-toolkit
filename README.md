@@ -10,30 +10,51 @@ Connect your AI assistant to [Spectro Cloud Palette](https://www.spectrocloud.co
 
 ## Install the MCP binary
 
-Download a versioned release for your platform from [GitHub Releases](https://github.com/spectrocloud/palette-agent-toolkit/releases), then verify it against the matching checksums file:
+`install.sh` detects your OS and architecture, downloads the matching release, and verifies its checksum. Fetch it, read it, then run it:
 
 ```bash
-VERSION=v0.4.0
+REPO="spectrocloud/palette-agent-toolkit"
+curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.4.1/install.sh"
+less install.sh          # read it before running
+sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR changes the location
+```
+
+Or in one line (prefer the read-first form on shared or production hosts):
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.4.1/install.sh" | sh
+```
+
+### Manual install
+
+Prefer not to run a script? Download the release for your platform and verify it against the checksums file:
+
+```bash
+REPO="spectrocloud/palette-agent-toolkit"
+BASE_URL="https://github.com/${REPO}/releases/latest/download"
 
 # Choose one:
 ASSET=palette-mcp_darwin_arm64.tar.gz  # macOS Apple Silicon
 # ASSET=palette-mcp_darwin_amd64.tar.gz  # macOS Intel
 # ASSET=palette-mcp_linux_amd64.tar.gz   # Linux amd64
+# ASSET=palette-mcp_linux_arm64.tar.gz   # Linux arm64
 
-BASE_URL="https://github.com/spectrocloud/palette-agent-toolkit/releases/download/${VERSION}"
-CHECKSUMS="palette-mcp_${VERSION#v}_checksums.txt"
+# Download the latest binary:
+curl -fLO "${BASE_URL}/${ASSET}"
 
-curl -LO "${BASE_URL}/${ASSET}"
-curl -LO "${BASE_URL}/${CHECKSUMS}"
-grep "  ${ASSET}$" "${CHECKSUMS}" | shasum -a 256 -c -
+# Download the matching checksums and verify:
+VERSION=$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+  "https://github.com/${REPO}/releases/latest" | grep -o '[^/]*$')
+curl -fLO "${BASE_URL}/palette-mcp_${VERSION#v}_checksums.txt"
+grep "  ${ASSET}$" "palette-mcp_${VERSION#v}_checksums.txt" | shasum -a 256 -c -
 
 tar xzf "${ASSET}"
 sudo mv palette-mcp /usr/local/bin/
 ```
 
-Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`.
+Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`, `linux_arm64`.
 
-> On macOS, clear Gatekeeper quarantine once after download: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`
+> On macOS, if your client fails to launch the binary (usually only when downloaded via a browser rather than `curl`), clear the Gatekeeper quarantine: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`
 
 ## Configure environment
 
@@ -44,6 +65,10 @@ export PALETTE_HOST="your-tenant.spectrocloud.com"
 export PALETTE_API_KEY="your-api-key"
 # Optional — scope all calls to one project:
 export PALETTE_PROJECT_UID="your-project-uid"
+# Optional — authenticate with a JWT instead of an API key:
+# export PALETTE_AUTH_TOKEN="your-token"
+# Optional — trust a private CA (on-prem Palette):
+# export PALETTE_CA_FILE="/path/to/ca.pem"
 ```
 
 Your API key and `PALETTE_HOST` must belong to the same tenant.
