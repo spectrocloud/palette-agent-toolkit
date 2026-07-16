@@ -19,6 +19,7 @@ VERSION=v0.4.0
 ASSET=palette-mcp_darwin_arm64.tar.gz  # macOS Apple Silicon
 # ASSET=palette-mcp_darwin_amd64.tar.gz  # macOS Intel
 # ASSET=palette-mcp_linux_amd64.tar.gz   # Linux amd64
+# ASSET=palette-mcp_linux_arm64.tar.gz   # Linux arm64
 
 BASE_URL="https://github.com/spectrocloud/palette-agent-toolkit/releases/download/${VERSION}"
 CHECKSUMS="palette-mcp_${VERSION#v}_checksums.txt"
@@ -31,7 +32,7 @@ tar xzf "${ASSET}"
 sudo mv palette-mcp /usr/local/bin/
 ```
 
-Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`.
+Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`, `linux_arm64`.
 
 > On macOS, clear Gatekeeper quarantine once after download: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`
 
@@ -44,6 +45,10 @@ export PALETTE_HOST="your-tenant.spectrocloud.com"
 export PALETTE_API_KEY="your-api-key"
 # Optional — scope all calls to one project:
 export PALETTE_PROJECT_UID="your-project-uid"
+# Optional — authenticate with a JWT instead of an API key:
+# export PALETTE_AUTH_TOKEN="your-token"
+# Optional — trust a private CA (on-prem Palette):
+# export PALETTE_CA_FILE="/path/to/ca.pem"
 ```
 
 Your API key and `PALETTE_HOST` must belong to the same tenant.

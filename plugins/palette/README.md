@@ -24,7 +24,7 @@ export PALETTE_HOST="your-tenant.spectrocloud.com"
 export PALETTE_API_KEY="your-api-key"
 ```
 
-Instead of an API key, you may authenticate with a JWT by exporting `PALETTE_AUTH_TOKEN="your-token"` (use either `PALETTE_API_KEY` or `PALETTE_AUTH_TOKEN`, not both).
+Instead of an API key, you may authenticate with a JWT by exporting `PALETTE_AUTH_TOKEN="your-token"` (use either `PALETTE_API_KEY` or `PALETTE_AUTH_TOKEN`, not both). For on-prem Palette behind a private CA, set `PALETTE_CA_FILE` to your CA bundle path.
 
 The plugin operates at **tenant scope** by default — all projects are visible. If you want to scope the session to a single project, also export `PALETTE_PROJECT_UID="your-project-uid"` and the server will restrict all calls to that project.
 
@@ -33,12 +33,13 @@ The plugin operates at **tenant scope** by default — all projects are visible.
 Ensure `palette-mcp` binary is installed and in your `PATH`. Download a versioned release for your platform from [palette-agent-toolkit GitHub Releases](https://github.com/spectrocloud/palette-agent-toolkit/releases), then verify it against the matching checksums file:
 
 ```bash
-VERSION=v0.0.0-rc1
+VERSION=v0.4.0
 
 # Choose one:
 ASSET=palette-mcp_darwin_arm64.tar.gz  # macOS Apple Silicon
 # ASSET=palette-mcp_darwin_amd64.tar.gz  # macOS Intel
 # ASSET=palette-mcp_linux_amd64.tar.gz   # Linux amd64
+# ASSET=palette-mcp_linux_arm64.tar.gz   # Linux arm64
 
 BASE_URL="https://github.com/spectrocloud/palette-agent-toolkit/releases/download/${VERSION}"
 CHECKSUMS="palette-mcp_${VERSION#v}_checksums.txt"
@@ -51,7 +52,7 @@ tar xzf "${ASSET}"
 sudo mv palette-mcp /usr/local/bin/
 ```
 
-Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`.
+Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`, `linux_arm64`.
 
 > On macOS, downloaded binaries are quarantined by Gatekeeper and your client may fail to launch them silently. Clear the flag once: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`.
 
@@ -121,6 +122,7 @@ Once the plugin is installed and environment variables are set, the following Pa
 - `read_cluster_status` — detailed health and conditions for a cluster UID
 - `read_cluster_observability` — compliance scan, backup, and restore status for a cluster UID
 - `read_attached_profiles_to_cluster` — profiles and pack versions for a cluster UID
+- `read_events` — recent events for a resource (optional; requires a binary that exposes it)
 - `read_edge_hosts` — list edge hosts with registration and connectivity status
 - `read_cluster_profiles` — list cluster profiles
 - `read_packs` — list available packs
