@@ -30,10 +30,11 @@ The plugin operates at **tenant scope** by default — all projects are visible.
 
 > **Important:** your API key and `PALETTE_HOST` must belong to the **same tenant**. A key only authenticates against the tenant it was created in — a mismatch produces a `401` error.
 
-Ensure `palette-mcp` binary is installed and in your `PATH`. Download a versioned release for your platform from [palette-agent-toolkit GitHub Releases](https://github.com/spectrocloud/palette-agent-toolkit/releases), then verify it against the matching checksums file:
+Ensure `palette-mcp` binary is installed and in your `PATH`. Download the latest release for your platform from [palette-agent-toolkit GitHub Releases](https://github.com/spectrocloud/palette-agent-toolkit/releases), then verify it against the matching checksums file:
 
 ```bash
-VERSION=v0.4.0
+REPO="spectrocloud/palette-agent-toolkit"
+BASE_URL="https://github.com/${REPO}/releases/latest/download"
 
 # Choose one:
 ASSET=palette-mcp_darwin_arm64.tar.gz  # macOS Apple Silicon
@@ -41,12 +42,14 @@ ASSET=palette-mcp_darwin_arm64.tar.gz  # macOS Apple Silicon
 # ASSET=palette-mcp_linux_amd64.tar.gz   # Linux amd64
 # ASSET=palette-mcp_linux_arm64.tar.gz   # Linux arm64
 
-BASE_URL="https://github.com/spectrocloud/palette-agent-toolkit/releases/download/${VERSION}"
-CHECKSUMS="palette-mcp_${VERSION#v}_checksums.txt"
+# Download the latest binary:
+curl -fLO "${BASE_URL}/${ASSET}"
 
-curl -LO "${BASE_URL}/${ASSET}"
-curl -LO "${BASE_URL}/${CHECKSUMS}"
-grep "  ${ASSET}$" "${CHECKSUMS}" | shasum -a 256 -c -
+# Download the matching checksums and verify:
+VERSION=$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+  "https://github.com/${REPO}/releases/latest" | grep -o '[^/]*$')
+curl -fLO "${BASE_URL}/palette-mcp_${VERSION#v}_checksums.txt"
+grep "  ${ASSET}$" "palette-mcp_${VERSION#v}_checksums.txt" | shasum -a 256 -c -
 
 tar xzf "${ASSET}"
 sudo mv palette-mcp /usr/local/bin/
@@ -54,7 +57,7 @@ sudo mv palette-mcp /usr/local/bin/
 
 Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`, `linux_arm64`.
 
-> On macOS, downloaded binaries are quarantined by Gatekeeper and your client may fail to launch them silently. Clear the flag once: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`.
+> On macOS, a browser-downloaded binary may be quarantined by Gatekeeper and fail to launch silently (a `curl` download usually isn't). If that happens, clear the flag: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`.
 
 **Migrating from manual setup?** Remove the existing `palette` entry from your client MCP config (`~/.claude.json` or equivalent) before installing this plugin to avoid duplicate server registration.
 
@@ -63,8 +66,11 @@ Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`, `linux_arm64
 Before launching your client, confirm the host and API key are valid and matched — this turns a confusing in-session auth error into a clear pass/fail:
 
 ```bash
-[ -z "$PALETTE_HOST" ] || [ -z "$PALETTE_API_KEY" ] && echo "Set PALETTE_HOST and PALETTE_API_KEY first" || \
+if [ -z "$PALETTE_HOST" ] || [ -z "$PALETTE_API_KEY" ]; then
+  echo "Set PALETTE_HOST and PALETTE_API_KEY first"
+else
   curl -s -o /dev/null -w "HTTP %{http_code}\n" -H "ApiKey: $PALETTE_API_KEY" "https://$PALETTE_HOST/v1/users/me"
+fi
 ```
 
 - `HTTP 200` — credentials are valid; proceed to install.

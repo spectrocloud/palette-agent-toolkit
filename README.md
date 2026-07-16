@@ -10,10 +10,11 @@ Connect your AI assistant to [Spectro Cloud Palette](https://www.spectrocloud.co
 
 ## Install the MCP binary
 
-Download a versioned release for your platform from [GitHub Releases](https://github.com/spectrocloud/palette-agent-toolkit/releases), then verify it against the matching checksums file:
+Download the latest release for your platform from [GitHub Releases](https://github.com/spectrocloud/palette-agent-toolkit/releases), then verify it against the matching checksums file:
 
 ```bash
-VERSION=v0.4.0
+REPO="spectrocloud/palette-agent-toolkit"
+BASE_URL="https://github.com/${REPO}/releases/latest/download"
 
 # Choose one:
 ASSET=palette-mcp_darwin_arm64.tar.gz  # macOS Apple Silicon
@@ -21,12 +22,14 @@ ASSET=palette-mcp_darwin_arm64.tar.gz  # macOS Apple Silicon
 # ASSET=palette-mcp_linux_amd64.tar.gz   # Linux amd64
 # ASSET=palette-mcp_linux_arm64.tar.gz   # Linux arm64
 
-BASE_URL="https://github.com/spectrocloud/palette-agent-toolkit/releases/download/${VERSION}"
-CHECKSUMS="palette-mcp_${VERSION#v}_checksums.txt"
+# Download the latest binary:
+curl -fLO "${BASE_URL}/${ASSET}"
 
-curl -LO "${BASE_URL}/${ASSET}"
-curl -LO "${BASE_URL}/${CHECKSUMS}"
-grep "  ${ASSET}$" "${CHECKSUMS}" | shasum -a 256 -c -
+# Download the matching checksums and verify:
+VERSION=$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+  "https://github.com/${REPO}/releases/latest" | grep -o '[^/]*$')
+curl -fLO "${BASE_URL}/palette-mcp_${VERSION#v}_checksums.txt"
+grep "  ${ASSET}$" "palette-mcp_${VERSION#v}_checksums.txt" | shasum -a 256 -c -
 
 tar xzf "${ASSET}"
 sudo mv palette-mcp /usr/local/bin/
@@ -34,7 +37,7 @@ sudo mv palette-mcp /usr/local/bin/
 
 Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`, `linux_arm64`.
 
-> On macOS, clear Gatekeeper quarantine once after download: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`
+> On macOS, if your client fails to launch the binary (usually only when downloaded via a browser rather than `curl`), clear the Gatekeeper quarantine: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`
 
 ## Configure environment
 
