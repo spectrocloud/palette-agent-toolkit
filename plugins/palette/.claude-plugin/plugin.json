@@ -1,7 +1,7 @@
 {
   "name": "palette",
   "description": "Connect your AI assistant to Palette — query clusters, diagnose issues, manage infrastructure using natural language.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": {
     "name": "Spectro Cloud"
   },
