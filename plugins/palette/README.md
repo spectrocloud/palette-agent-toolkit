@@ -30,7 +30,24 @@ The plugin operates at **tenant scope** by default — all projects are visible.
 
 > **Important:** your API key and `PALETTE_HOST` must belong to the **same tenant**. A key only authenticates against the tenant it was created in — a mismatch produces a `401` error.
 
-Ensure `palette-mcp` binary is installed and in your `PATH`. Download the latest release for your platform from [palette-agent-toolkit GitHub Releases](https://github.com/spectrocloud/palette-agent-toolkit/releases), then verify it against the matching checksums file:
+Ensure the `palette-mcp` binary is installed and on your `PATH`. `install.sh` detects your OS and architecture, downloads the matching release, and verifies its checksum:
+
+```bash
+REPO="spectrocloud/palette-agent-toolkit"
+curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.4.1/install.sh"
+less install.sh          # read it before running
+sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR changes the location
+```
+
+Or in one line (prefer the read-first form on shared or production hosts):
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.4.1/install.sh" | sh
+```
+
+### Manual install
+
+Prefer not to run a script? Download the release for your platform and verify it against the checksums file:
 
 ```bash
 REPO="spectrocloud/palette-agent-toolkit"

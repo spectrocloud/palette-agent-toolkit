@@ -10,7 +10,24 @@ Connect your AI assistant to [Spectro Cloud Palette](https://www.spectrocloud.co
 
 ## Install the MCP binary
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/spectrocloud/palette-agent-toolkit/releases), then verify it against the matching checksums file:
+`install.sh` detects your OS and architecture, downloads the matching release, and verifies its checksum. Fetch it, read it, then run it:
+
+```bash
+REPO="spectrocloud/palette-agent-toolkit"
+curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.4.1/install.sh"
+less install.sh          # read it before running
+sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR changes the location
+```
+
+Or in one line (prefer the read-first form on shared or production hosts):
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.4.1/install.sh" | sh
+```
+
+### Manual install
+
+Prefer not to run a script? Download the release for your platform and verify it against the checksums file:
 
 ```bash
 REPO="spectrocloud/palette-agent-toolkit"
