@@ -131,7 +131,10 @@ env_vars = ["PALETTE_HOST", "PALETTE_API_KEY", "PALETTE_PROJECT_UID"]
 
 ### Antigravity CLI
 
-Add to `~/.gemini/config/mcp_config.json` (shared with Gemini CLI/IDE):
+Add to `~/.gemini/config/mcp_config.json`. Antigravity does not currently
+expand `$VAR` references in `env` blocks (a known regression from Gemini
+CLI) — use literal values, and restrict the file's permissions since your
+key is stored in plaintext:
 
 ```json
 {
@@ -139,13 +142,17 @@ Add to `~/.gemini/config/mcp_config.json` (shared with Gemini CLI/IDE):
     "palette": {
       "command": "palette-mcp",
       "env": {
-        "PALETTE_HOST": "$PALETTE_HOST",
-        "PALETTE_API_KEY": "$PALETTE_API_KEY",
-        "PALETTE_PROJECT_UID": "$PALETTE_PROJECT_UID"
+        "PALETTE_HOST": "your-tenant.spectrocloud.com",
+        "PALETTE_API_KEY": "your-api-key",
+        "PALETTE_PROJECT_UID": "your-project-uid"
       }
     }
   }
 }
+```
+
+```bash
+chmod 600 ~/.gemini/config/mcp_config.json
 ```
 
 ### Cursor
