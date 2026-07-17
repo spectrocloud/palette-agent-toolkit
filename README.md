@@ -4,7 +4,7 @@ Connect your AI assistant to [Spectro Cloud Palette](https://www.spectrocloud.co
 
 ## Prerequisites
 
-- An MCP-capable client — [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Claude Desktop, Codex CLI, Gemini CLI, or Cursor
+- An MCP-capable client — [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Claude Desktop, Codex CLI, Antigravity CLI, or Cursor
 - A Palette API key for your tenant
 - The `palette-mcp` binary on your `PATH`
 
@@ -129,10 +129,9 @@ command = "palette-mcp"
 env_vars = ["PALETTE_HOST", "PALETTE_API_KEY", "PALETTE_PROJECT_UID"]
 ```
 
-### Gemini CLI
+### Antigravity CLI
 
-Add to `~/.gemini/settings.json` (or project-scoped `.gemini/settings.json`).
-Gemini expands `$VAR` references from your environment:
+Add to `~/.gemini/config/mcp_config.json` (shared with Gemini CLI/IDE):
 
 ```json
 {
