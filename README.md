@@ -4,7 +4,7 @@ Connect your AI assistant to [Spectro Cloud Palette](https://www.spectrocloud.co
 
 ## Prerequisites
 
-- An MCP-capable client — [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Claude Desktop, Codex CLI, Gemini CLI, or Cursor
+- An MCP-capable client — [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Claude Desktop, Codex CLI, Antigravity CLI, or Cursor
 - A Palette API key for your tenant
 - The `palette-mcp` binary on your `PATH`
 
@@ -129,10 +129,12 @@ command = "palette-mcp"
 env_vars = ["PALETTE_HOST", "PALETTE_API_KEY", "PALETTE_PROJECT_UID"]
 ```
 
-### Gemini CLI
+### Antigravity CLI
 
-Add to `~/.gemini/settings.json` (or project-scoped `.gemini/settings.json`).
-Gemini expands `$VAR` references from your environment:
+Add to `~/.gemini/config/mcp_config.json`. Antigravity does not currently
+expand `$VAR` references in `env` blocks (a known regression from Gemini
+CLI) — use literal values, and restrict the file's permissions since your
+key is stored in plaintext:
 
 ```json
 {
@@ -140,13 +142,17 @@ Gemini expands `$VAR` references from your environment:
     "palette": {
       "command": "palette-mcp",
       "env": {
-        "PALETTE_HOST": "$PALETTE_HOST",
-        "PALETTE_API_KEY": "$PALETTE_API_KEY",
-        "PALETTE_PROJECT_UID": "$PALETTE_PROJECT_UID"
+        "PALETTE_HOST": "your-tenant.spectrocloud.com",
+        "PALETTE_API_KEY": "your-api-key",
+        "PALETTE_PROJECT_UID": "your-project-uid"
       }
     }
   }
 }
+```
+
+```bash
+chmod 600 ~/.gemini/config/mcp_config.json
 ```
 
 ### Cursor
