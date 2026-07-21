@@ -6,15 +6,17 @@ Connect your AI assistant to [Spectro Cloud Palette](https://www.spectrocloud.co
 
 - An MCP-capable client — [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Claude Desktop, Codex CLI, Antigravity CLI, or Cursor
 - A Palette API key for your tenant
-- The `palette-mcp` binary on your `PATH`
+- The `palette-mcp` binary on your `PATH` — **only for non-plugin clients** (Codex, Cursor, Antigravity). The Claude Code / Claude Desktop plugin fetches it automatically; see [Install the plugin](#install-the-plugin-claude-code--claude-desktop).
 
 ## Install the MCP binary
+
+> **Claude Code / Claude Desktop plugin users can skip this section.** The plugin bundles a launcher that downloads and checksum-verifies the correct binary automatically on first run. This section is for **other MCP clients** (Codex, Cursor, Antigravity) that run the `palette-mcp` binary directly.
 
 `install.sh` detects your OS and architecture, downloads the matching release, and verifies its checksum. Fetch it, read it, then run it:
 
 ```bash
 REPO="spectrocloud/palette-agent-toolkit"
-curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.4.1/install.sh"
+curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.4.2/install.sh"
 less install.sh          # read it before running
 sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR changes the location
 ```
@@ -22,7 +24,7 @@ sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR chang
 Or in one line (prefer the read-first form on shared or production hosts):
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.4.1/install.sh" | sh
+curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.4.2/install.sh" | sh
 ```
 
 ### Manual install
@@ -93,7 +95,11 @@ Both Claude Code and Claude Desktop install from the same marketplace.
 /plugin install palette@palette-agent-toolkit
 ```
 
-Run `/reload-plugins` after installing. Confirm with `/mcp` — the palette server should show **connected**.
+The plugin is **self-contained** — on first use it automatically downloads and checksum-verifies the correct `palette-mcp` binary for your OS/architecture (cached under the plugin's data directory for later sessions). No separate binary install is required.
+
+> **Note:** the plugin caches the binary in Claude Code's plugin data dir, not on your `PATH`. Only [`install.sh`](#install-the-mcp-binary) puts `palette-mcp` on `PATH` (for non-plugin clients).
+
+Run `/reload-plugins` after installing. Confirm with `/mcp` — the palette server should show **connected**. Approve the Palette tools when prompted (standard one-time MCP consent).
 
 **Claude Desktop** (marketplace support requires a recent Desktop build) — open Settings → Plugins → **Add**, enter `spectrocloud/palette-agent-toolkit`, then install the **palette** plugin from the synced marketplace.
 
