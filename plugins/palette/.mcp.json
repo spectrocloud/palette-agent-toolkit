@@ -1,15 +1,15 @@
 {
   "mcpServers": {
     "palette": {
-      "command": "palette-mcp",
-      "args": [],
+      "command": "sh",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/bin/palette-mcp-launch.sh"],
       "env": {
-        "PALETTE_HOST": "${PALETTE_HOST}",
-        "PALETTE_API_KEY": "${PALETTE_API_KEY}",
-        "PALETTE_AUTH_TOKEN": "${PALETTE_AUTH_TOKEN}",
-        "PALETTE_PROJECT_UID": "${PALETTE_PROJECT_UID}",
-        "PALETTE_CA_FILE": "${PALETTE_CA_FILE}",
-        "PALETTE_INSECURE_SKIP_VERIFY": "${PALETTE_INSECURE_SKIP_VERIFY}"
+        "PALETTE_HOST": "${PALETTE_HOST:-}",
+        "PALETTE_API_KEY": "${PALETTE_API_KEY:-}",
+        "PALETTE_AUTH_TOKEN": "${PALETTE_AUTH_TOKEN:-}",
+        "PALETTE_PROJECT_UID": "${PALETTE_PROJECT_UID:-}",
+        "PALETTE_CA_FILE": "${PALETTE_CA_FILE:-}",
+        "PALETTE_INSECURE_SKIP_VERIFY": "${PALETTE_INSECURE_SKIP_VERIFY:-false}"
       }
     }
   }
