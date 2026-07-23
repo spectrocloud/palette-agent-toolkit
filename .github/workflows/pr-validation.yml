@@ -51,6 +51,6 @@ jobs:
             | xargs -0 -n1 -I{} sh -c 'echo "checking {}"; python3 -m json.tool {} > /dev/null'
 
       - name: Lint markdown
-        uses: DavidAnson/markdownlint-cli2-action@b4c9feab76d8025d1e83c653fa3990936df0e6c8 # v16
+        uses: DavidAnson/markdownlint-cli2-action@6bf21b07787794f89a243495939cd651942aeabe # v24.1.0
         with:
           globs: '**/*.md'
