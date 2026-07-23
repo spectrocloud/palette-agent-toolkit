@@ -58,9 +58,11 @@ Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`, `linux_arm64
 
 > On macOS, if your client fails to launch the binary (usually only when downloaded via a browser rather than `curl`), clear the Gatekeeper quarantine: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`
 
-## Configure environment
+## Configure environment (non-plugin clients)
 
-Export these in your shell profile before launching your MCP client:
+> **Claude Code / Claude Desktop plugin** users configure credentials in-app (see **Install the plugin** below) and can skip this section.
+
+For other MCP clients (and the standalone binary), export these in your shell profile before launching the client:
 
 ```bash
 export PALETTE_HOST="your-tenant.spectrocloud.com"
@@ -98,6 +100,8 @@ Both Claude Code and Claude Desktop install from the same marketplace.
 The plugin is **self-contained** — on first use it automatically downloads and checksum-verifies the correct `palette-mcp` binary for your OS/architecture (cached under the plugin's data directory for later sessions). No separate binary install is required.
 
 > **Note:** the plugin caches the binary in Claude Code's plugin data dir, not on your `PATH`. Only [`install.sh`](#install-the-mcp-binary) puts `palette-mcp` on `PATH` (for non-plugin clients).
+
+**Configure credentials** — run `/plugin` → **palette** → **Configure options** and set your Palette **host** and **API key** (create one under User Menu → My API Keys). Sensitive fields are stored by Claude Code in your OS credential store — macOS Keychain, Windows Credential Manager, or Linux Secret Service (falling back to `~/.claude/.credentials.json` at `0600` on headless Linux) — so you don't need the shell exports above for the plugin. **Upgrading?** The plugin no longer reads exported `PALETTE_*` variables; reconfigure via **Configure options**. For CI, pass `--config host=… --config api_key=…` to `claude plugin install`.
 
 Run `/reload-plugins` after installing. Confirm with `/mcp` — the palette server should show **connected**. Approve the Palette tools when prompted (standard one-time MCP consent).
 

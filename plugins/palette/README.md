@@ -17,20 +17,28 @@ The plugin and skills are distributed via the public [palette-agent-toolkit](htt
 
 ## Prerequisites
 
-Export these in your shell profile (`~/.zshrc` or `~/.bashrc`) before launching your AI client:
+Configure your Palette credentials through Claude Code's plugin configuration — no shell exports, no `.env` files. After enabling the plugin, run `/plugin` → **palette** → **Configure options** and set:
+
+| Option | Notes |
+|--------|-------|
+| **Palette host** | Your tenant URL, e.g. `example.spectrocloud.com` |
+| **Palette API key** | Create under **User Menu → My API Keys** |
+| **Palette auth token** | JWT alternative — provide an API key **or** an auth token, not both |
+| **Default project UID** | Optional — scope all calls to one project; omit for tenant-wide access |
+| **Custom CA file path** | Optional — CA bundle for a self-hosted Palette behind a private CA |
+
+At minimum, set **host** and one of **API key** / **auth token**. The API key and auth token are marked *sensitive*, so Claude Code stores them in your OS credential store — macOS **Keychain**, Windows **Credential Manager**, or the Linux **Secret Service** where available (falling back to `~/.claude/.credentials.json` at mode `0600` on headless Linux) — never in a project file or the repo. Non-sensitive options (host, project, CA path) live in `~/.claude/settings.json`. For non-interactive / CI provisioning, pass repeatable `--config` flags at install time:
 
 ```bash
-export PALETTE_HOST="your-tenant.spectrocloud.com"
-export PALETTE_API_KEY="your-api-key"
+claude plugin install palette@palette-agent-toolkit \
+  --config host=example.spectrocloud.com --config api_key=<your-key>
 ```
 
-Instead of an API key, you may authenticate with a JWT by exporting `PALETTE_AUTH_TOKEN="your-token"` (use either `PALETTE_API_KEY` or `PALETTE_AUTH_TOKEN`, not both). For on-prem Palette behind a private CA, set `PALETTE_CA_FILE` to your CA bundle path.
+> **Same-tenant rule:** your API key and host must belong to the **same tenant** — a key only authenticates against the tenant it was created in, so a mismatch returns a `401` error.
 
-The plugin operates at **tenant scope** by default — all projects are visible. If you want to scope the session to a single project, also export `PALETTE_PROJECT_UID="your-project-uid"` and the server will restrict all calls to that project.
+**Upgrading from an earlier version?** The plugin no longer reads exported `PALETTE_*` shell variables — set your credentials via **Configure options** above. The insecure TLS-skip option was also removed from the plugin; use **Custom CA file path** for a self-hosted private CA.
 
-> **Important:** your API key and `PALETTE_HOST` must belong to the **same tenant**. A key only authenticates against the tenant it was created in — a mismatch produces a `401` error.
-
-Ensure the `palette-mcp` binary is installed and on your `PATH`. `install.sh` detects your OS and architecture, downloads the matching release, and verifies its checksum:
+The plugin is **self-contained** — it downloads and checksum-verifies the correct `palette-mcp` binary on first use (cached under the plugin's data directory), so no binary install is required. The steps below are only for **non-plugin MCP clients** that need `palette-mcp` on your `PATH`. `install.sh` detects your OS and architecture, downloads the matching release, and verifies its checksum:
 
 ```bash
 REPO="spectrocloud/palette-agent-toolkit"
@@ -80,7 +88,9 @@ Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`, `linux_arm64
 
 ### Verify your credentials (recommended)
 
-Before launching your client, confirm the host and API key are valid and matched — this turns a confusing in-session auth error into a clear pass/fail:
+> For **non-plugin clients** that use exported environment variables (the binary path above). Claude Code plugin users configure via **Configure options** and can skip this.
+
+With `PALETTE_HOST` and `PALETTE_API_KEY` exported, confirm they're valid and matched — this turns a confusing in-session auth error into a clear pass/fail:
 
 ```bash
 if [ -z "$PALETTE_HOST" ] || [ -z "$PALETTE_API_KEY" ]; then
@@ -92,7 +102,7 @@ fi
 
 - `HTTP 200` — credentials are valid; proceed to install.
 - `HTTP 401` — key is invalid/expired, or key and host belong to different tenants. Create a fresh key from the `PALETTE_HOST` tenant's UI.
-- `Set PALETTE_HOST and PALETTE_API_KEY first` — the env vars aren't exported in this shell; run the `export` commands above and retry.
+- `Set PALETTE_HOST and PALETTE_API_KEY first` — the env vars aren't exported in this shell; export both and retry.
 
 This pre-flight validates API-key auth only. If you use `PALETTE_AUTH_TOKEN`, confirm the token with your normal Palette login flow before launching the plugin.
 
@@ -139,7 +149,7 @@ List all my clusters   → returns real data from your tenant
 
 ## Available MCP Tools
 
-Once the plugin is installed and environment variables are set, the following Palette tools are available in your session:
+Once the plugin is installed and configured, the following Palette tools are available in your session:
 
 - `read_clusters` — list all clusters with status
 - `read_cluster_status` — detailed health and conditions for a cluster UID
@@ -160,14 +170,14 @@ Once the plugin is installed and environment variables are set, the following Pa
 ## Troubleshooting
 
 **`/mcp` shows palette failed or disconnected**
-- Confirm `PALETTE_HOST` and `PALETTE_API_KEY` are exported in the shell that launched your client (the server reads them at startup).
-- Run the credential pre-flight above — a `401` means the key is invalid/expired or the key and host belong to different tenants.
+- Confirm your credentials are set: `/plugin` → **palette** → **Configure options** (host + API key).
+- A `401` means the key is invalid/expired, or the key and host belong to different tenants.
 
 **`401` / authorization errors when running a skill**
-- The most common cause: the API key and `PALETTE_HOST` are for different tenants. A key only works against the tenant it was created in. Create a fresh key from the `PALETTE_HOST` tenant's UI.
+- The most common cause: the API key and host are for different tenants. A key only works against the tenant it was created in — create a fresh key from that tenant's UI.
 
 **`OperationForbidden` errors**
-- Your account lacks tenant-wide access. Export `PALETTE_PROJECT_UID` to scope the session to a project you have access to.
+- Your account lacks tenant-wide access. Set **Default project UID** in Configure options to scope to a project you can access.
 
 **Skills don't appear in `/help`**
 - Run `/reload-plugins`, or confirm the install with `claude plugin details palette@palette-agent-toolkit`.

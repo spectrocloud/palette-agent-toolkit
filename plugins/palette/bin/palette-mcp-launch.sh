@@ -18,6 +18,16 @@ trap 'cleanup' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+# credential pre-flight: when the plugin isn't configured yet, userConfig
+# substitutes empty strings — fail fast with an actionable message instead of a
+# cryptic downstream connection failure. (stderr only; stdout is the RPC channel.)
+if [ -z "${PALETTE_HOST:-}" ] || { [ -z "${PALETTE_API_KEY:-}" ] && [ -z "${PALETTE_AUTH_TOKEN:-}" ]; }; then
+  die "Palette credentials not configured. In Claude Code run: /plugin -> palette -> Configure options (set host + API key). Other MCP clients: set PALETTE_HOST and PALETTE_API_KEY (or PALETTE_AUTH_TOKEN)."
+fi
+if [ -n "${PALETTE_API_KEY:-}" ] && [ -n "${PALETTE_AUTH_TOKEN:-}" ]; then
+  log "warning: both PALETTE_API_KEY and PALETTE_AUTH_TOKEN are set; configure only one."
+fi
+
 # tools needed on every path (incl. offline cache hit)
 for t in uname tr awk cat; do
   command -v "${t}" >/dev/null 2>&1 || die "required tool not found on PATH: ${t}"

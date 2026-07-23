@@ -4,12 +4,11 @@
       "command": "sh",
       "args": ["${CLAUDE_PLUGIN_ROOT}/bin/palette-mcp-launch.sh"],
       "env": {
-        "PALETTE_HOST": "${PALETTE_HOST:-}",
-        "PALETTE_API_KEY": "${PALETTE_API_KEY:-}",
-        "PALETTE_AUTH_TOKEN": "${PALETTE_AUTH_TOKEN:-}",
-        "PALETTE_PROJECT_UID": "${PALETTE_PROJECT_UID:-}",
-        "PALETTE_CA_FILE": "${PALETTE_CA_FILE:-}",
-        "PALETTE_INSECURE_SKIP_VERIFY": "${PALETTE_INSECURE_SKIP_VERIFY:-false}"
+        "PALETTE_HOST": "${user_config.host}",
+        "PALETTE_API_KEY": "${user_config.api_key}",
+        "PALETTE_AUTH_TOKEN": "${user_config.auth_token}",
+        "PALETTE_PROJECT_UID": "${user_config.project_uid}",
+        "PALETTE_CA_FILE": "${user_config.ca_file}"
       }
     }
   }
