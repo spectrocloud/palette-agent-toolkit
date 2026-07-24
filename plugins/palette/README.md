@@ -42,7 +42,7 @@ The plugin is **self-contained** — it downloads and checksum-verifies the corr
 
 ```bash
 REPO="spectrocloud/palette-agent-toolkit"
-curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.4.1/install.sh"
+curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.4.2/install.sh"
 less install.sh          # read it before running
 sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR changes the location
 ```
@@ -50,7 +50,7 @@ sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR chang
 Or in one line (prefer the read-first form on shared or production hosts):
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.4.1/install.sh" | sh
+curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.4.2/install.sh" | sh
 ```
 
 ### Manual install
@@ -104,7 +104,7 @@ fi
 - `HTTP 401` — key is invalid/expired, or key and host belong to different tenants. Create a fresh key from the `PALETTE_HOST` tenant's UI.
 - `Set PALETTE_HOST and PALETTE_API_KEY first` — the env vars aren't exported in this shell; export both and retry.
 
-This pre-flight validates API-key auth only. If you use `PALETTE_AUTH_TOKEN`, confirm the token with your normal Palette login flow before launching the plugin.
+This pre-flight validates API-key auth only. If you use `PALETTE_AUTH_TOKEN`, confirm the token with your normal Palette login flow before launching your client.
 
 ## Install
 
