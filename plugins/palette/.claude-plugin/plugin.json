@@ -1,9 +1,38 @@
 {
   "name": "palette",
   "description": "Connect your AI assistant to Palette — query clusters, diagnose issues, manage infrastructure using natural language.",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "author": {
     "name": "Spectro Cloud"
   },
-  "repository": "https://github.com/spectrocloud/palette-agent-toolkit"
+  "repository": "https://github.com/spectrocloud/palette-agent-toolkit",
+  "userConfig": {
+    "host": {
+      "type": "string",
+      "title": "Palette host",
+      "description": "Required to connect. Your Palette tenant URL, e.g. example.spectrocloud.com"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "Palette API key",
+      "description": "Required unless using an auth token. Create under User Menu > My API Keys.",
+      "sensitive": true
+    },
+    "auth_token": {
+      "type": "string",
+      "title": "Palette auth token",
+      "description": "JWT alternative to an API key — set one, not both.",
+      "sensitive": true
+    },
+    "project_uid": {
+      "type": "string",
+      "title": "Default project UID",
+      "description": "Optional. Scopes all calls to one project; omit for tenant-wide access."
+    },
+    "ca_file": {
+      "type": "string",
+      "title": "Custom CA file path",
+      "description": "Optional. CA bundle path for a self-hosted Palette behind a private CA."
+    }
+  }
 }
