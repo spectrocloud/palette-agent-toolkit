@@ -1,0 +1,46 @@
+{
+  "$comment": "Optional, opt-in permission template for the diagnose-cluster skill's kubectl access. There is no hook or other mechanism that applies this automatically — merge the 'permissions' block below into your own .claude/settings.json (project-scoped, shared with your team) or ~/.claude/settings.json (personal) to have Claude Code's permission system enforce this allow/deny list. If you don't merge it, there is no enforcement at this layer. See KUBECTL_GUARDRAILS.md in this directory for what this covers, its limitations, and the read-only kubeconfig that's the real safety boundary — minted per-session with genuine RBAC enforcement; this template is an additional, optional layer on top of that, not a substitute for it.",
+  "permissions": {
+    "allow": [
+      "Bash(kubectl get*)",
+      "Bash(kubectl describe*)",
+      "Bash(kubectl logs*)",
+      "Bash(kubectl top*)",
+      "Bash(kubectl version*)",
+      "Bash(kubectl api-resources*)",
+      "Bash(kubectl explain*)",
+      "Bash(kubectl cluster-info*)",
+      "Bash(kubectl config view*)",
+      "Bash(kubectl config current-context*)",
+      "Bash(kubectl config get-contexts*)"
+    ],
+    "deny": [
+      "Bash(kubectl create*)",
+      "Bash(kubectl apply*)",
+      "Bash(kubectl delete*)",
+      "Bash(kubectl patch*)",
+      "Bash(kubectl edit*)",
+      "Bash(kubectl replace*)",
+      "Bash(kubectl scale*)",
+      "Bash(kubectl annotate*)",
+      "Bash(kubectl label*)",
+      "Bash(kubectl cordon*)",
+      "Bash(kubectl drain*)",
+      "Bash(kubectl taint*)",
+      "Bash(kubectl rollout*)",
+      "Bash(kubectl set*)",
+      "Bash(kubectl run*)",
+      "Bash(kubectl expose*)",
+      "Bash(kubectl autoscale*)",
+      "Bash(kubectl exec*)",
+      "Bash(kubectl cp*)",
+      "Bash(kubectl port-forward*)",
+      "Bash(kubectl proxy*)",
+      "Bash(kubectl attach*)",
+      "Bash(kubectl debug*)",
+      "Bash(kubectl get secret*)",
+      "Bash(kubectl describe secret*)",
+      "Bash(kubectl * secret*)"
+    ]
+  }
+}

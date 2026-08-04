@@ -135,6 +135,35 @@ Run `/reload-plugins` after installing to activate it in your current session.
 | `health-overview` | `/palette:health-overview` | Fleet-wide health check — "what's broken across my tenant?" |
 | `access-review` | `/palette:access-review [name]` | Who's on which team, who's pending activation, any orphaned accounts |
 
+`diagnose-cluster` can additionally run read-only `kubectl` against a
+customer cluster. The real safety boundary there is a read-only kubeconfig,
+minted per-session by a bundled script and backed by genuine cluster RBAC —
+the admin kubeconfig is fetched only transiently to bootstrap it, never used
+for the kube-API commands themselves. An optional, opt-in
+`kubectl-readonly.settings.json` permission template is also included; it
+only takes effect if you merge it into your own `.claude/settings.json`. See
+[KUBECTL_GUARDRAILS.md](skills/diagnose-cluster/KUBECTL_GUARDRAILS.md) for
+the full policy and its honest limitations.
+
+## Running generated commands safely
+
+`diagnose-cluster` proposes `kubectl` and `ssh` commands — it doesn't run
+them silently. Review and approve each one yourself before it executes.
+
+**Don't run this skill with an auto-approve-everything ("YOLO") mode
+enabled** — Claude Code's `--dangerously-skip-permissions` flag, or a
+project `permissions` config that auto-allows everything. The `PreToolUse`
+hook that used to auto-block dangerous `kubectl`/`ssh` commands has been
+removed (see [KUBECTL_GUARDRAILS.md](skills/diagnose-cluster/KUBECTL_GUARDRAILS.md)).
+Read-only `kubectl` in the kube tier is still enforced server-side by cluster
+RBAC (via the minted read-only credential), but that is the only automatic
+backstop — `ssh` commands and anything run outside that credential rely on
+your review. Reviewing each proposed command before it runs is what stands
+between a mistaken command and a real cluster.
+
+See [Configure permissions](https://code.claude.com/docs/en/permissions)
+for how Claude Code's approval flow and `/permissions` command work.
+
 ## Test
 
 After installing, verify the plugin loaded and the MCP server connected:
