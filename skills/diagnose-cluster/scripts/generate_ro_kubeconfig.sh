@@ -2,7 +2,10 @@
 set -e
 set -o pipefail
 # NOTE: `set -x` intentionally removed — it echoed the SA bearer token to stdout,
-# which lands in the Claude/skill transcript. Set DEBUG=1 to re-enable tracing.
+# which lands in the Claude/skill transcript. Set DEBUG=1 to re-enable tracing;
+# the two commands that handle the bearer token (the TokenRequest call and the
+# `config set-credentials --token=` write) suspend xtrace around themselves, so
+# DEBUG=1 stays safe to use and never prints the token.
 [[ -n "${DEBUG:-}" ]] && set -x
 
 # ============================================================================
@@ -66,16 +69,92 @@ set -o pipefail
 #           in the active context) fails loudly instead of surfacing later as
 #           an opaque TLS error.
 #   - wipe/`chmod 600` the ADMIN kubeconfig after use.
+#   - moved the credential files off a shared `/tmp/kube` into a user-private
+#           directory (`$XDG_RUNTIME_DIR` or `$HOME/.cache`, mode 700), and set
+#           `umask 077` up front. `/tmp/kube` is owned by whoever creates it
+#           first and has no sticky bit, so on a shared host another user could
+#           read the RO kubeconfig's bearer token or symlink-swap it during the
+#           write — and `chmod 600` only landed after the file was written.
 # ============================================================================
+
+# Credential files go in a user-private directory, never a shared one. A fixed
+# /tmp/kube belongs to whichever user creates it first (and, unlike /tmp itself,
+# carries no sticky bit) — on a shared host that lets another user read the RO
+# kubeconfig, which holds a live bearer token, or symlink-swap it mid-write.
+# XDG_RUNTIME_DIR is per-user tmpfs at mode 700 on Linux; $HOME/.cache is the
+# portable fallback (macOS sets no XDG_RUNTIME_DIR).
+# Deliberately deterministic rather than `mktemp -d`: `--cleanup` runs as a
+# separate later invocation and must rebuild these paths from <sa> <ns> alone.
+if [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+    TARGET_FOLDER="${XDG_RUNTIME_DIR}/palette-diag"
+elif [[ -n "${HOME:-}" ]]; then
+    TARGET_FOLDER="${HOME}/.cache/palette-diag"
+else
+    echo "ERROR: neither XDG_RUNTIME_DIR nor HOME is set — refusing to write a bearer-token kubeconfig to a shared location. Set HOME or XDG_RUNTIME_DIR to a user-private directory." >&2
+    exit 1
+fi
+
+# Every file this script creates either holds a credential or protects one. 077
+# closes the window between each write and the explicit chmod 600 further down.
+umask 077
 
 # Cleanup mode: `generate_ro_kubeconfig.sh --cleanup <sa> <ns>` removes everything
 # this script created (call at end of a diagnosis session).
 if [[ "${1:-}" == "--cleanup" ]]; then
     _sa="${2:?usage: --cleanup <sa> <ns>}"; _ns="${3:?usage: --cleanup <sa> <ns>}"
-    kubectl delete clusterrolebinding "view-binding-${_sa}-${_ns}" --ignore-not-found
-    kubectl delete clusterrolebinding "diagnose-cluster-capi-read-binding-${_sa}-${_ns}" --ignore-not-found
-    kubectl delete sa "${_sa}" -n "${_ns}" --ignore-not-found
-    rm -f "/tmp/kube/k8s-${_sa}-${_ns}-conf" "/tmp/kube/ca-${_sa}-${_ns}.crt"
+
+    # Remove the local credential files FIRST. They hold a live bearer token
+    # and their removal has no cluster dependency, so it must not sit behind
+    # kubectl. Previously this line was last in the branch and `set -e` aborted
+    # on the first failed delete — `--ignore-not-found` suppresses NotFound,
+    # NOT connection errors — so an unreachable cluster left the token on disk.
+    # (These are the RO files; the ADMIN kubeconfig the deletes below
+    # authenticate with is a different path supplied via $KUBECONFIG.)
+    #
+    # Sweep EVERY candidate base, not only the one this invocation's env
+    # resolves to. --cleanup runs as a separate later process and re-derives
+    # TARGET_FOLDER independently, so an env difference between the mint call
+    # and this one would otherwise miss the file and leave the bearer token on
+    # disk until its 1h TTL. Filenames are fully determined by <sa> and <ns>,
+    # so cleanup needs no knowledge of which base was used, and `rm -f` on an
+    # absent path is a no-op.
+    #
+    # The third candidate is the conventional XDG_RUNTIME_DIR value. It is
+    # there because the var being *unset here* is precisely the case the first
+    # candidate cannot cover: if mint ran with it set and cleanup runs without
+    # it, there is no variable left to reconstruct that path from. Sweeping
+    # /run/user/<uid> covers that on Linux, where XDG_RUNTIME_DIR is
+    # effectively always that value.
+    #
+    # Residual, deliberately not chased: a *non-conventional* XDG_RUNTIME_DIR
+    # that is also unset at cleanup time remains unreachable. Closing that
+    # would mean passing the directory in as an argument (8 call sites across
+    # both skill twins) or writing a pointer file at a predictable path. Not
+    # worth either for a token that self-expires in an hour.
+    # Attempt every delete even if an earlier one fails, so one connection
+    # error (or, for the local files below, a permission error on a stale
+    # candidate dir this invocation doesn't own) cannot strand the remaining
+    # cluster-scoped RBAC. Record the failure and exit non-zero: the
+    # runbook's "cleanup may have failed … may need manual removal" path
+    # depends on a non-zero exit to fire.
+    _cleanup_rc=0
+    for _base in "${XDG_RUNTIME_DIR:+${XDG_RUNTIME_DIR}/palette-diag}" \
+                 "${HOME:+${HOME}/.cache/palette-diag}" \
+                 "/run/user/$(id -u)/palette-diag"; do
+        [ -n "${_base}" ] || continue
+        # rm -f is a no-op on a MISSING path, but still fails (and would abort
+        # under set -e) on a path that exists and is unwritable — e.g. a
+        # stale or shared candidate dir this invocation never created.
+        rm -f "${_base}/k8s-${_sa}-${_ns}-conf" "${_base}/ca-${_sa}-${_ns}.crt" || _cleanup_rc=1
+    done
+
+    kubectl delete clusterrolebinding "view-binding-${_sa}-${_ns}" --ignore-not-found || _cleanup_rc=1
+    kubectl delete clusterrolebinding "diagnose-cluster-capi-read-binding-${_sa}-${_ns}" --ignore-not-found || _cleanup_rc=1
+    kubectl delete sa "${_sa}" -n "${_ns}" --ignore-not-found || _cleanup_rc=1
+    if [ "${_cleanup_rc}" -ne 0 ]; then
+        echo "ERROR: one or more cluster-side deletes failed for ${_sa}/${_ns} — ServiceAccount and/or ClusterRoleBindings may still exist and need manual removal. Local credential files were removed regardless." >&2
+        exit 1
+    fi
     echo "cleaned up RO artifacts for ${_sa}/${_ns} (shared ClusterRoles view + diagnose-cluster-capi-read-role left intact)"
     exit 0
 fi
@@ -88,13 +167,16 @@ fi
 
 SERVICE_ACCOUNT_NAME=$1
 NAMESPACE="$2"
-KUBECFG_FILE_NAME="/tmp/kube/k8s-${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-conf"
-TARGET_FOLDER="/tmp/kube"
+KUBECFG_FILE_NAME="${TARGET_FOLDER}/k8s-${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-conf"
 CA_CRT_FILE="${TARGET_FOLDER}/ca-${SERVICE_ACCOUNT_NAME}-${NAMESPACE}.crt"
 
 create_target_folder() {
     echo -n "Creating target directory to hold files in ${TARGET_FOLDER}..."
-    mkdir -p "${TARGET_FOLDER}"
+    # -m applies only when mkdir creates the directory, so tighten an existing
+    # one explicitly. chmod also fails if we do not own it — the case to refuse,
+    # since a bearer-token kubeconfig is about to be written in there.
+    mkdir -p -m 700 "${TARGET_FOLDER}" || { echo "ERROR: cannot create ${TARGET_FOLDER}" >&2; exit 1; }
+    chmod 700 "${TARGET_FOLDER}" || { echo "ERROR: cannot secure ${TARGET_FOLDER} (not owned by this user?)" >&2; exit 1; }
     printf "done"
 }
 
@@ -130,7 +212,12 @@ get_user_token() {
     # kubectl create token uses the TokenRequest API (k8s 1.24+): self-expiring,
     # no persistent `kubernetes.io/service-account-token` Secret is created at all.
     echo -e -n "\\nRequesting short-lived token (TokenRequest API, --duration=1h)..."
+    # Suspend xtrace across the token assignment even under DEBUG=1: tracing this
+    # line prints the bearer token itself into the transcript. Restored to whatever
+    # it was immediately after (see the DEBUG note at the top of the file).
+    { _xtrace_was_on=""; case "$-" in *x*) _xtrace_was_on=1 ;; esac; set +x; } 2>/dev/null
     USER_TOKEN=$(kubectl create token "${SERVICE_ACCOUNT_NAME}" -n "${NAMESPACE}" --duration=1h)
+    [[ -n "${_xtrace_was_on}" ]] && set -x
     printf "done"
 }
 
@@ -157,10 +244,14 @@ set_kube_config_values() {
     --embed-certs=true
 
     echo -n "Setting token credentials entry in kubeconfig..."
+    # Same reason as the token request above: --token= expands the bearer token on
+    # the traced command line, so keep xtrace off across this one call only.
+    { _xtrace_was_on=""; case "$-" in *x*) _xtrace_was_on=1 ;; esac; set +x; } 2>/dev/null
     kubectl config set-credentials \
     "${SERVICE_ACCOUNT_NAME}-${NAMESPACE}-${CLUSTER_NAME}" \
     --kubeconfig="${KUBECFG_FILE_NAME}" \
     --token="${USER_TOKEN}"
+    [[ -n "${_xtrace_was_on}" ]] && set -x
 
     echo -n "Setting a context entry in kubeconfig..."
     kubectl config set-context \
@@ -331,10 +422,40 @@ chmod 600 "${KUBECFG_FILE_NAME}"
 
 # Sanity check: the RO credential can list pods (read verb) but must NOT create.
 echo -e "\\nVerifying read-only access..."
-KUBECONFIG="${KUBECFG_FILE_NAME}" kubectl auth can-i list pods -A >/dev/null && echo "  can list pods: yes"
-KUBECONFIG="${KUBECFG_FILE_NAME}" kubectl auth can-i create pods -A >/dev/null 2>&1 \
-    && echo "  WARNING: can create pods — role is NOT read-only" \
-    || echo "  can create pods: no (read-only confirmed)"
+# `&& echo` alone would swallow a negative/failed result: `set -e` does not
+# abort on a failing left-hand side of &&, so the line silently vanished and
+# the script still printed RO_KUBECONFIG= and exited 0 — handing K3 a
+# credential that cannot read anything (RBAC propagation lag, or a grant that
+# genuinely did not take).
+if KUBECONFIG="${KUBECFG_FILE_NAME}" kubectl auth can-i list pods -A >/dev/null 2>&1; then
+  echo "  can list pods: yes"
+else
+  echo "  WARNING: cannot list pods with the minted credential — it may not be usable yet (RBAC propagation) or the grant failed. Re-check before relying on it." >&2
+fi
+# `kubectl auth can-i` exits non-zero for BOTH an explicit "no" AND for
+# execution errors (connection refused, API error, expired token), so exit
+# status alone cannot tell "write is denied" apart from "we could not find
+# out". The previous form discarded the output and printed
+# "read-only confirmed" on any non-zero status — i.e. an API error was
+# reported as proof of read-only. Inspect the printed answer instead, and
+# fail closed on anything inconclusive: emitting RO_KUBECONFIG= after a
+# check that never proved denial hands K3 a credential on false assurance.
+WRITE_ANSWER=$(KUBECONFIG="${KUBECFG_FILE_NAME}" kubectl auth can-i create pods -A 2>/dev/null || true)
+case "${WRITE_ANSWER}" in
+  no)
+    echo "  can create pods: no (read-only confirmed)"
+    ;;
+  yes)
+    echo "ERROR: the minted credential CAN create pods — it is NOT read-only. Removing it rather than handing it on." >&2
+    rm -f "${KUBECFG_FILE_NAME}" "${CA_CRT_FILE}"
+    exit 1
+    ;;
+  *)
+    echo "ERROR: could not determine whether the minted credential can create pods (got '${WRITE_ANSWER:-<no output>}'). Refusing to report a credential as read-only when that was never proven. Removing it." >&2
+    rm -f "${KUBECFG_FILE_NAME}" "${CA_CRT_FILE}"
+    exit 1
+    ;;
+esac
 
 # Machine-readable output for the diagnose-cluster skill to capture.
 echo "RO_KUBECONFIG=${KUBECFG_FILE_NAME}"
