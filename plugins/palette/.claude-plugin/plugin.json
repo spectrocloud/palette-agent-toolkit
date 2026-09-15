@@ -24,11 +24,6 @@
       "description": "JWT alternative to an API key — set one, not both.",
       "sensitive": true
     },
-    "project_uid": {
-      "type": "string",
-      "title": "Default project UID",
-      "description": "Optional. Scopes all calls to one project; omit for tenant-wide access."
-    },
     "ca_file": {
       "type": "string",
       "title": "Custom CA file path",

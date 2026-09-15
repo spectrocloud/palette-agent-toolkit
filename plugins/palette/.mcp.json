@@ -7,8 +7,8 @@
         "PALETTE_HOST": "${user_config.host}",
         "PALETTE_API_KEY": "${user_config.api_key}",
         "PALETTE_AUTH_TOKEN": "${user_config.auth_token}",
-        "PALETTE_PROJECT_UID": "${user_config.project_uid}",
-        "PALETTE_CA_FILE": "${user_config.ca_file}"
+        "PALETTE_CA_FILE": "${user_config.ca_file}",
+        "PALETTE_PROFILES_FILE": "${PALETTE_PROFILES_FILE:-}"
       }
     }
   }

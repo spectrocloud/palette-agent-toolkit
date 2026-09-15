@@ -6,9 +6,8 @@
 # stdout is the MCP JSON-RPC channel: diagnostics go to stderr, never stdout.
 set -eu
 
-VERSION="v0.4.2"
+VERSION="v0.5.0"
 REPO="spectrocloud/palette-agent-toolkit"
-DATA_DIR="${CLAUDE_PLUGIN_DATA:-${HOME:-/tmp}/.cache/palette-mcp}"
 
 tmp=""
 log()     { printf '[palette-mcp-launch] %s\n' "$*" >&2; }
@@ -17,6 +16,20 @@ cleanup() { if [ -n "${tmp}" ]; then rm -rf "${tmp}"; fi; }
 trap 'cleanup' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+# The cache below is an *executable trust boundary*: the fast path execs whatever
+# binary is there if it matches the digest sidecar sitting beside it. Both files
+# are therefore only as trustworthy as the directory holding them — in a shared
+# or predictable location (the old `/tmp` fallback) a local user could pre-seed a
+# malicious binary *and* a matching digest, and we would exec it. So: no private
+# directory, no launch. Resolved after die() exists so the failure is actionable.
+if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+  DATA_DIR="${CLAUDE_PLUGIN_DATA}"
+elif [ -n "${HOME:-}" ]; then
+  DATA_DIR="${HOME}/.cache/palette-mcp"
+else
+  die "neither CLAUDE_PLUGIN_DATA nor HOME is set — refusing to cache an executable in a world-writable location. Set CLAUDE_PLUGIN_DATA to a user-private directory."
+fi
 
 # credential pre-flight: when the plugin isn't configured yet, userConfig
 # substitutes empty strings — fail fast with an actionable message instead of a
@@ -29,7 +42,7 @@ if [ -n "${PALETTE_API_KEY:-}" ] && [ -n "${PALETTE_AUTH_TOKEN:-}" ]; then
 fi
 
 # tools needed on every path (incl. offline cache hit)
-for t in uname tr awk cat; do
+for t in uname tr awk cat mkdir chmod rm; do
   command -v "${t}" >/dev/null 2>&1 || die "required tool not found on PATH: ${t}"
 done
 if command -v sha256sum >/dev/null 2>&1; then _sha=sha256sum
@@ -55,6 +68,22 @@ esac
 bin="${DATA_DIR}/palette-mcp-${VERSION}-${os}-${arch}"
 sha_file="${bin}.sha256"
 
+# Secure the cache directory BEFORE the fast path reads anything out of it —
+# verifying after the exec would be pointless. `mkdir -m` only applies when mkdir
+# actually creates the directory, so an already-existing one keeps whatever mode
+# it has; chmod it explicitly. chmod also fails when we are not the owner, which
+# is precisely the case to refuse: someone else's directory must never be the
+# source of a binary we exec.
+# umask first: `-m 700` applies only to the DEEPEST component, so with
+# DATA_DIR=$HOME/.cache/palette-mcp and no existing ~/.cache, that parent is
+# created with the ambient umask. A parent another local user can write lets
+# them replace the whole palette-mcp directory entry — supplying a binary and
+# a matching digest sidecar together — which the fast path below would exec.
+# The sibling generate_ro_kubeconfig.sh sets this for the same reason.
+umask 077
+mkdir -p -m 700 "${DATA_DIR}" || die "cannot create data dir: ${DATA_DIR}"
+chmod 700 "${DATA_DIR}" || die "cannot secure data dir (not owned by this user?): ${DATA_DIR}"
+
 # fast path: trust the cache only if it is a regular file matching its recorded
 # digest; anything else falls through to a clean reinstall (self-healing).
 if [ -f "${bin}" ] && [ ! -L "${bin}" ] && [ -r "${sha_file}" ]; then
@@ -69,7 +98,7 @@ fi
 for t in curl tar mktemp mkdir mv chmod; do
   command -v "${t}" >/dev/null 2>&1 || die "required tool not found on PATH: ${t}"
 done
-mkdir -p "${DATA_DIR}" || die "cannot create data dir: ${DATA_DIR}"
+# DATA_DIR was already created and mode-verified above, before the fast path.
 [ -w "${DATA_DIR}" ] || die "data dir not writable: ${DATA_DIR}"
 
 asset="palette-mcp_${os}_${arch}.tar.gz"
