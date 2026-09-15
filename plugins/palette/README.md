@@ -24,10 +24,9 @@ Configure your Palette credentials through Claude Code's plugin configuration �
 | **Palette host** | Your tenant URL, e.g. `example.spectrocloud.com` |
 | **Palette API key** | Create under **User Menu → My API Keys** |
 | **Palette auth token** | JWT alternative — provide an API key **or** an auth token, not both |
-| **Default project UID** | Optional — scope all calls to one project; omit for tenant-wide access |
 | **Custom CA file path** | Optional — CA bundle for a self-hosted Palette behind a private CA |
 
-At minimum, set **host** and one of **API key** / **auth token**. The API key and auth token are marked *sensitive*, so Claude Code stores them in your OS credential store — macOS **Keychain**, Windows **Credential Manager**, or the Linux **Secret Service** where available (falling back to `~/.claude/.credentials.json` at mode `0600` on headless Linux) — never in a project file or the repo. Non-sensitive options (host, project, CA path) live in `~/.claude/settings.json`. For non-interactive / CI provisioning, pass repeatable `--config` flags at install time:
+At minimum, set **host** and one of **API key** / **auth token**. The API key and auth token are marked *sensitive*, so Claude Code stores them in your OS credential store — macOS **Keychain**, Windows **Credential Manager**, or the Linux **Secret Service** where available (falling back to `~/.claude/.credentials.json` at mode `0600` on headless Linux) — never in a project file or the repo. Non-sensitive options (host, CA path) live in `~/.claude/settings.json`. For non-interactive / CI provisioning, pass repeatable `--config` flags at install time:
 
 ```bash
 claude plugin install palette@palette-agent-toolkit \
@@ -42,7 +41,7 @@ The plugin is **self-contained** — it downloads and checksum-verifies the corr
 
 ```bash
 REPO="spectrocloud/palette-agent-toolkit"
-curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.4.2/install.sh"
+curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.5.1/install.sh"
 less install.sh          # read it before running
 sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR changes the location
 ```
@@ -50,7 +49,7 @@ sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR chang
 Or in one line (prefer the read-first form on shared or production hosts):
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.4.2/install.sh" | sh
+curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.5.1/install.sh" | sh
 ```
 
 ### Manual install
@@ -104,7 +103,41 @@ fi
 - `HTTP 401` — key is invalid/expired, or key and host belong to different tenants. Create a fresh key from the `PALETTE_HOST` tenant's UI.
 - `Set PALETTE_HOST and PALETTE_API_KEY first` — the env vars aren't exported in this shell; export both and retry.
 
-This pre-flight validates API-key auth only. If you use `PALETTE_AUTH_TOKEN`, confirm the token with your normal Palette login flow before launching your client.
+This pre-flight validates API-key auth only. If you use `PALETTE_AUTH_TOKEN`, confirm the token with your normal Palette login flow before launching your client. If you've configured your credentials through `~/.palette/auth_profiles.yaml` instead (see [Multi-profile setup](#multi-profile-setup-advanced) below), skip this check too — `palette-mcp configure` already validates each profile's credential with a real API call before saving it.
+
+### Multi-profile setup (advanced)
+
+The steps above configure one Palette tenant/host — the **default** profile. To target more than one from the same session (dev vs. prod, or a second customer tenant) without restarting your client, add named profiles to `~/.palette/auth_profiles.yaml` and pass `auth_profile: "<name>"` on any tool call. Your plugin **Configure options** (or exported env vars) keep working unchanged as the implicit `default` profile — this is additive, not a replacement.
+
+Add a profile with the binary's own wizard rather than hand-editing YAML:
+
+```bash
+palette-mcp configure
+```
+
+It prompts for a profile name, host, and one of API key/JWT; validates the credential with one real API call before saving; and writes the entry to `~/.palette/auth_profiles.yaml` at `0600`. This is an operator step run at a terminal, never something an agent does through chat, since it's the one place your API key/JWT is typed in.
+
+`configure` needs `palette-mcp` on your `PATH` — the self-contained plugin install doesn't put it there (it caches the binary internally for its own launcher). Fetch it once via [Manual install](#manual-install) above just to run this command; you don't need to switch your MCP client off the plugin to do so.
+
+```text
+$ palette-mcp configure
+Profile name (e.g. default, dev, prod-eu): dev
+Palette host (e.g. api.spectrocloud.com): dev.spectrocloud.com
+API key (leave blank to use a JWT instead): sk-...
+Validating credential against dev.spectrocloud.com ...
+Credential valid.
+Saved profile "dev" to /Users/you/.palette/auth_profiles.yaml (0600).
+Reconnect your MCP client (/mcp in Claude Code, or restart) to pick it up — no hot-reload.
+```
+
+After adding or changing a profile, reconnect (`/mcp` in Claude Code, or restart your client) — there's no hot-reload. Then:
+
+- `list_auth_profiles` — see what's loaded (names + hosts only, never secrets).
+- Add `auth_profile: "dev"` to any tool call to target that profile; omit it to keep using `default`.
+
+To use a profiles file at a non-default path (e.g. a shared CI location), set `PALETTE_PROFILES_FILE` before launching your client — the plugin's `.mcp.json` forwards it through.
+
+Profiles written by `configure` are identity only (host + credential) — they don't carry a project. Tools that already take their own `project_uid` argument (e.g. `create_cluster_profile`) work the same way regardless of which `auth_profile` you pass.
 
 ## Install
 
@@ -194,7 +227,13 @@ Once the plugin is installed and configured, the following Palette tools are ava
 - `read_teams` — list teams
 - `read_users` — list users
 
-**Write tools** (`create_*`, `update_*`, `delete_*` for clusters, profiles, projects, teams, users) are **off by default**. To enable them, start `palette-mcp` with the `--allow-write` flag — add it to `args` in the plugin's `.mcp.json` (`"args": ["--allow-write"]`).
+**Write tools** (`create_*`, `update_*`, `delete_*` for clusters, profiles, projects, teams, users) are **off by default**. To enable them, start `palette-mcp` with the `--allow-write` flag — append it to `args` in the plugin's `.mcp.json`, keeping the launcher path that is already there:
+
+```json
+"args": ["${CLAUDE_PLUGIN_ROOT}/bin/palette-mcp-launch.sh", "--allow-write"]
+```
+
+Replacing the whole array with just `["--allow-write"]` drops the launcher, and the server won't start.
 
 ## Troubleshooting
 
@@ -206,7 +245,7 @@ Once the plugin is installed and configured, the following Palette tools are ava
 - The most common cause: the API key and host are for different tenants. A key only works against the tenant it was created in — create a fresh key from that tenant's UI.
 
 **`OperationForbidden` errors**
-- Your account lacks tenant-wide access. Set **Default project UID** in Configure options to scope to a project you can access.
+- Your account lacks tenant-wide access. Pass `project_uid` on the failing call to scope it to a project you can access — most read tools accept a per-call `project_uid`, and write tools that need one take it as their own argument.
 
 **Skills don't appear in `/help`**
 - Run `/reload-plugins`, or confirm the install with `claude plugin details palette@palette-agent-toolkit`.
