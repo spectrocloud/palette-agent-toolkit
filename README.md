@@ -67,8 +67,6 @@ For other MCP clients (and the standalone binary), export these in your shell pr
 ```bash
 export PALETTE_HOST="your-tenant.spectrocloud.com"
 export PALETTE_API_KEY="your-api-key"
-# Optional — scope all calls to one project:
-export PALETTE_PROJECT_UID="your-project-uid"
 # Optional — authenticate with a JWT instead of an API key:
 # export PALETTE_AUTH_TOKEN="your-token"
 # Optional — trust a private CA (on-prem Palette):
@@ -107,7 +105,7 @@ Run `/reload-plugins` after installing. Confirm with `/mcp` — the palette serv
 
 **Claude Desktop** (marketplace support requires a recent Desktop build) — open Settings → Plugins → **Add**, enter `spectrocloud/palette-agent-toolkit`, then install the **palette** plugin from the synced marketplace.
 
-See [plugins/palette/README.md](plugins/palette/README.md) for skills, available MCP tools, and troubleshooting.
+See [plugins/palette/README.md](plugins/palette/README.md) for skills, available MCP tools, multi-environment profiles (`palette-mcp configure`, for working across more than one tenant in a session), and troubleshooting.
 
 ## Use with other MCP clients
 
@@ -136,7 +134,7 @@ and forward your already-exported shell variables by name instead:
 ```toml
 [mcp_servers.palette]
 command = "palette-mcp"
-env_vars = ["PALETTE_HOST", "PALETTE_API_KEY", "PALETTE_PROJECT_UID"]
+env_vars = ["PALETTE_HOST", "PALETTE_API_KEY"]
 ```
 
 ### Antigravity CLI
@@ -153,8 +151,7 @@ key is stored in plaintext:
       "command": "palette-mcp",
       "env": {
         "PALETTE_HOST": "your-tenant.spectrocloud.com",
-        "PALETTE_API_KEY": "your-api-key",
-        "PALETTE_PROJECT_UID": "your-project-uid"
+        "PALETTE_API_KEY": "your-api-key"
       }
     }
   }
@@ -177,8 +174,7 @@ Cursor expands `${env:VAR}` references from your environment:
       "command": "palette-mcp",
       "env": {
         "PALETTE_HOST": "${env:PALETTE_HOST}",
-        "PALETTE_API_KEY": "${env:PALETTE_API_KEY}",
-        "PALETTE_PROJECT_UID": "${env:PALETTE_PROJECT_UID}"
+        "PALETTE_API_KEY": "${env:PALETTE_API_KEY}"
       }
     }
   }
@@ -188,9 +184,11 @@ Cursor expands `${env:VAR}` references from your environment:
 Cursor asks you to approve a new MCP server before it loads — approve **palette**
 when prompted, or enable it from Cursor's MCP settings.
 
-`PALETTE_PROJECT_UID` is optional in every client — set it to scope all calls to
-one project. Every client runs read-only by default; write tools stay disabled
-unless the binary is launched with `--allow-write`.
+The server runs tenant-wide by default — reads cover every project your key can
+see. To scope a read or target a write at one project, pass that project's UID
+as the `project_uid` argument on the individual tool call — there is no
+startup-level project setting. Every client runs read-only by default; write
+tools stay disabled unless the binary is launched with `--allow-write`.
 
 ## Skills (standalone install)
 
