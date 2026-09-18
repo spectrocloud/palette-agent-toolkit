@@ -10,13 +10,13 @@ Connect your AI assistant to [Spectro Cloud Palette](https://www.spectrocloud.co
 
 ## Install the MCP binary
 
-> **Claude Code / Claude Desktop plugin users can skip this section.** The plugin bundles a launcher that downloads and checksum-verifies the correct binary automatically on first run. This section is for **other MCP clients** (Codex, Cursor, Antigravity) that run the `palette-mcp` binary directly.
+> **Claude Code / Claude Desktop plugin users:** skip this section — the plugin fetches the binary automatically; see [Install the plugin](#install-the-plugin-claude-code--claude-desktop).
 
 `install.sh` detects your OS and architecture, downloads the matching release, and verifies its checksum. Fetch it, read it, then run it:
 
 ```bash
 REPO="spectrocloud/palette-agent-toolkit"
-curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.4.2/install.sh"
+curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.5.1/install.sh"
 less install.sh          # read it before running
 sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR changes the location
 ```
@@ -24,7 +24,7 @@ sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR chang
 Or in one line (prefer the read-first form on shared or production hosts):
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.4.2/install.sh" | sh
+curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.5.1/install.sh" | sh
 ```
 
 ### Manual install
@@ -53,8 +53,6 @@ grep "  ${ASSET}$" "palette-mcp_${VERSION#v}_checksums.txt" | shasum -a 256 -c -
 tar xzf "${ASSET}"
 sudo mv palette-mcp /usr/local/bin/
 ```
-
-Supported platforms: `darwin_arm64`, `darwin_amd64`, `linux_amd64`, `linux_arm64`.
 
 > On macOS, if your client fails to launch the binary (usually only when downloaded via a browser rather than `curl`), clear the Gatekeeper quarantine: `xattr -d com.apple.quarantine /usr/local/bin/palette-mcp`
 
@@ -95,9 +93,9 @@ Both Claude Code and Claude Desktop install from the same marketplace.
 /plugin install palette@palette-agent-toolkit
 ```
 
-The plugin is **self-contained** — on first use it automatically downloads and checksum-verifies the correct `palette-mcp` binary for your OS/architecture (cached under the plugin's data directory for later sessions). No separate binary install is required.
+The plugin is **self-contained** — on first use it automatically downloads and checksum-verifies the correct `palette-mcp` binary for your OS/architecture. No separate binary install is required.
 
-> **Note:** the plugin caches the binary in Claude Code's plugin data dir, not on your `PATH`. Only [`install.sh`](#install-the-mcp-binary) puts `palette-mcp` on `PATH` (for non-plugin clients).
+> **Note:** the plugin caches the binary in Claude Code's plugin data dir, not on your `PATH`.
 
 **Configure credentials** — run `/plugin` → **palette** → **Configure options** and set your Palette **host** and **API key** (create one under User Menu → My API Keys). Sensitive fields are stored by Claude Code in your OS credential store — macOS Keychain, Windows Credential Manager, or Linux Secret Service (falling back to `~/.claude/.credentials.json` at `0600` on headless Linux) — so you don't need the shell exports above for the plugin. **Upgrading?** The plugin no longer reads exported `PALETTE_*` variables; reconfigure via **Configure options**. For CI, pass `--config host=… --config api_key=…` to `claude plugin install`.
 
@@ -105,7 +103,7 @@ Run `/reload-plugins` after installing. Confirm with `/mcp` — the palette serv
 
 **Claude Desktop** (marketplace support requires a recent Desktop build) — open Settings → Plugins → **Add**, enter `spectrocloud/palette-agent-toolkit`, then install the **palette** plugin from the synced marketplace.
 
-See [plugins/palette/README.md](plugins/palette/README.md) for skills, available MCP tools, multi-environment profiles (`palette-mcp configure`, for working across more than one tenant in a session), and troubleshooting.
+See [plugins/palette/README.md](plugins/palette/README.md) for skills, available MCP tools, and troubleshooting.
 
 ## Use with other MCP clients
 
@@ -114,6 +112,12 @@ it. Install the binary and export the environment variables as above, then
 register the server with your client. The examples reference your exported shell
 variables where the client supports it, so your API key isn't written to a
 config file in plaintext.
+
+The server runs tenant-wide by default — reads cover every project your key can
+see. To scope a read or target a write at one project, pass that project's UID
+as the `project_uid` argument on the tools that accept it — there is no
+startup-level project setting. Every client runs read-only by default; write
+tools stay disabled unless the binary is launched with `--allow-write`.
 
 ### Codex CLI
 
@@ -140,9 +144,8 @@ env_vars = ["PALETTE_HOST", "PALETTE_API_KEY"]
 ### Antigravity CLI
 
 Add to `~/.gemini/config/mcp_config.json`. Antigravity does not currently
-expand `$VAR` references in `env` blocks (a known regression from Gemini
-CLI) — use literal values, and restrict the file's permissions since your
-key is stored in plaintext:
+expand `$VAR` references in `env` blocks — use literal values, and restrict
+the file's permissions since your key is stored in plaintext:
 
 ```json
 {
@@ -183,12 +186,6 @@ Cursor expands `${env:VAR}` references from your environment:
 
 Cursor asks you to approve a new MCP server before it loads — approve **palette**
 when prompted, or enable it from Cursor's MCP settings.
-
-The server runs tenant-wide by default — reads cover every project your key can
-see. To scope a read or target a write at one project, pass that project's UID
-as the `project_uid` argument on the individual tool call — there is no
-startup-level project setting. Every client runs read-only by default; write
-tools stay disabled unless the binary is launched with `--allow-write`.
 
 ## Skills (standalone install)
 
