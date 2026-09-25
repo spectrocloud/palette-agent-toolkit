@@ -2,7 +2,11 @@
   "mcpServers": {
     "palette": {
       "command": "sh",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/bin/palette-mcp-launch.sh"],
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/bin/palette-mcp-launch.sh",
+        "--allow-write=${user_config.allow_write}",
+        "--allow-direct-ssh=${user_config.allow_direct_ssh}"
+      ],
       "env": {
         "PALETTE_HOST": "${user_config.host}",
         "PALETTE_API_KEY": "${user_config.api_key}",

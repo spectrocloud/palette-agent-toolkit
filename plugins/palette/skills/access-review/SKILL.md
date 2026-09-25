@@ -9,6 +9,14 @@ description: "Who's on which team, who's pending activation, who's orphaned — 
 
 Build a tenant membership and activation map: teams and their rosters, users and their activation/role state. Useful for security reviews, onboarding, and handoffs.
 
+**Definitions:**
+- **Pending activation** — a user invited/created in the tenant but who has not yet signed up (still on the activation link).
+- **Orphaned user** — a user with no role assignment (no tenant roles, and, per the full orphan check, no team membership either).
+
+**Use case:** a platform admin onboarding a fleet — e.g. fleet operators for a chain's store locations (Starbucks/Domino's-style store fleets) — checks who's still pending activation before go-live.
+
+**Note:** untested live as of this writing — the demo walks a pre-run output, not a live session.
+
 **Scope & limits (state these up front to the user):**
 - Shows **tenant** roles only, as **UIDs + counts** — there is no role-name lookup yet (`read_roles` is not shipped).
 - Does **not** show project-scoped role assignments — those are not readable in v0.

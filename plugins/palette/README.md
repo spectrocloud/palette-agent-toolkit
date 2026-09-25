@@ -25,6 +25,8 @@ Configure your Palette credentials through Claude Code's plugin configuration �
 | **Palette API key** | Create under **User Menu → My API Keys** |
 | **Palette auth token** | JWT alternative — provide an API key **or** an auth token, not both |
 | **Custom CA file path** | Optional — CA bundle for a self-hosted Palette behind a private CA |
+| **Enable write tools** | Optional — turns on `create_*`/`update_*`/`delete_*` tools. Off by default |
+| **Enable direct-SSH edge tools** | Optional — turns on `run_edge_command` and the read-only edge SSH tools. Off by default |
 
 At minimum, set **host** and one of **API key** / **auth token**. The API key and auth token are marked *sensitive*, so Claude Code stores them in your OS credential store — macOS **Keychain**, Windows **Credential Manager**, or the Linux **Secret Service** where available (falling back to `~/.claude/.credentials.json` at mode `0600` on headless Linux) — never in a project file or the repo. Non-sensitive options (host, CA path) live in `~/.claude/settings.json`. For non-interactive / CI provisioning, pass repeatable `--config` flags at install time:
 
@@ -41,7 +43,7 @@ The plugin is **self-contained** — it downloads and checksum-verifies the corr
 
 ```bash
 REPO="spectrocloud/palette-agent-toolkit"
-curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.5.1/install.sh"
+curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.6.0/install.sh"
 less install.sh          # read it before running
 sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR changes the location
 ```
@@ -49,7 +51,7 @@ sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR chang
 Or in one line (prefer the read-first form on shared or production hosts):
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.5.1/install.sh" | sh
+curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.6.0/install.sh" | sh
 ```
 
 ### Manual install
@@ -124,6 +126,7 @@ $ palette-mcp configure
 Profile name (e.g. default, dev, prod-eu): dev
 Palette host (e.g. api.spectrocloud.com): dev.spectrocloud.com
 API key (leave blank to use a JWT instead): sk-...
+CA file path, for a self-hosted install with its own CA (leave blank to inherit PALETTE_CA_FILE / auto-bootstrap):
 Validating credential against dev.spectrocloud.com ...
 Credential valid.
 Saved profile "dev" to /Users/you/.palette/auth_profiles.yaml (0600).
@@ -138,6 +141,8 @@ After adding or changing a profile, reconnect (`/mcp` in Claude Code, or restart
 To use a profiles file at a non-default path (e.g. a shared CI location), set `PALETTE_PROFILES_FILE` before launching your client — the plugin's `.mcp.json` forwards it through.
 
 Profiles written by `configure` are identity only (host + credential) — they don't carry a project. Tools that already take their own `project_uid` argument (e.g. `create_cluster_profile`) work the same way regardless of which `auth_profile` you pass.
+
+**Per-profile CA (two self-hosted installs, different CAs).** `PALETTE_CA_FILE` is one global env var — every profile shares it. That's fine when all your self-hosted/IP installs share one CA, but two *different* self-hosted CAs in the same session need each profile to pin its own: answer the CA-file prompt above with that profile's chain (or add `ca_file: /path/ca.pem` directly to its entry in `auth_profiles.yaml`), and it overrides `PALETTE_CA_FILE` for that profile only — other profiles with no `ca_file` of their own still fall back to the env var, or auto-bootstrap if that's unset too. This has no effect on the `default` profile: the boot-time client is always built directly from `PALETTE_HOST`/`PALETTE_CA_FILE` env vars at startup, never from a profile entry — `configure` warns if you set a CA file on `default`.
 
 ## Install
 
@@ -219,21 +224,34 @@ Once the plugin is installed and configured, the following Palette tools are ava
 - `read_attached_profiles_to_cluster` — profiles and pack versions for a cluster UID
 - `read_events` — recent events for a resource (optional; requires a binary that exposes it)
 - `read_edge_hosts` — list edge hosts with registration and connectivity status
-- `read_cluster_profiles` — list cluster profiles
+- `read_cluster_profiles` — fetch a profile by UID, or list profiles (list mode requires `project_uid`)
 - `read_packs` — list available packs
 - `read_cloud_accounts` — list configured cloud accounts
 - `read_registries` — list registries
 - `read_projects` — list projects
 - `read_teams` — list teams
 - `read_users` — list users
+- `run_edge_command` — run a read-only, allowlist-gated command on an edge host over direct SSH (off by default, see below)
 
-**Write tools** (`create_*`, `update_*`, `delete_*` for clusters, profiles, projects, teams, users) are **off by default**. To enable them, start `palette-mcp` with the `--allow-write` flag — append it to `args` in the plugin's `.mcp.json`, keeping the launcher path that is already there:
+**Write tools** (`create_*`, `update_*`, `delete_*` for clusters, profiles, projects, teams, users) are **off by default**. Enable them via `/plugin` → **palette** → **Configure options** → **Enable write tools**. (Non-plugin MCP clients: `args` in the plugin's `.mcp.json` ships `--allow-write=${user_config.allow_write}` and `--allow-direct-ssh=${user_config.allow_direct_ssh}`, which only Claude Code's plugin substitution resolves — a non-plugin client passes them as literal strings and the binary will fail to parse them. Remove both `${user_config.*}` entries first, then add your own flags, keeping the launcher path that is already there — replacing the whole array with just `["--allow-write"]` drops the launcher, and the server won't start.)
+
+**`run_edge_command`** is **off by default**. Enable it via `/plugin` → **palette** → **Configure options** → **Enable direct-SSH edge tools**. (Non-plugin MCP clients: remove the `${user_config.*}` args as above, then add `--allow-direct-ssh`.)
+
+It runs an operator-supplied command on an edge host over direct SSH (host, user, and a private key or password), but every command is checked against a server-side, fail-closed allowlist gate before any connection is attempted — shell metacharacters (pipes, redirects, substitution, globs) are always rejected, and only a fixed set of read-only binaries and subcommands (`kubectl get/describe/logs/...`, `systemctl status/show/...`, `journalctl`, `crictl`, `df`/`du`/`ip`, GET-only `curl`, `openssl` cert checks, `cat`/`grep`/`find`/`bridge`/etc.) is allowed. A denied command never dials the host. This is defense-in-depth, not the security boundary — that's the SSH account's own privileges.
+
+Known residual risk, accepted rather than hidden: `curl`'s SSRF protection only blocks `file://` targets — it does not close network-side SSRF (reaching internal services via `http(s)://`), which needs egress control and is out of scope today. `kubectl`'s `--kubeconfig`/`--context` flags could point at an attacker-preplaced malicious kubeconfig, but that requires a prior foothold on the host and is a lower-likelihood path. `systemctl show`/`systemctl cat` can surface a unit's `Environment=` directives, which may embed secrets for some services — accepted because the output only reaches the calling client/model over this already-authenticated SSH session (no *new* credential leak path is opened), it requires that specific unit to have embedded a secret there to begin with, and `show`/`cat` have real troubleshooting value the KB relies on.
+
+**Claude Code permissions.allow.** Enabling `--allow-direct-ssh` on the server is necessary but not sufficient — Claude Code itself prompts interactively the first time any MCP tool call is made, same as an un-allowlisted `Bash` command. To pre-approve it (for unattended or repeated use), add an entry to the `permissions.allow` array in `settings.json` (project `.claude/settings.json` or user `~/.claude/settings.json`):
 
 ```json
-"args": ["${CLAUDE_PLUGIN_ROOT}/bin/palette-mcp-launch.sh", "--allow-write"]
+{
+  "permissions": {
+    "allow": ["mcp__palette__run_edge_command"]
+  }
+}
 ```
 
-Replacing the whole array with just `["--allow-write"]` drops the launcher, and the server won't start.
+Tool names follow `mcp__<server-name>__<tool-name>`, and the server name here is `palette` (the key in `.mcp.json`'s `mcpServers`, not the binary name `palette-mcp`). To pre-approve every tool this server exposes instead of just this one, use the prefix wildcard `mcp__palette__*`.
 
 ## Troubleshooting
 
@@ -245,7 +263,8 @@ Replacing the whole array with just `["--allow-write"]` drops the launcher, and 
 - The most common cause: the API key and host are for different tenants. A key only works against the tenant it was created in — create a fresh key from that tenant's UI.
 
 **`OperationForbidden` errors**
-- Your account lacks tenant-wide access. Pass `project_uid` on the failing call to scope it to a project you can access — most read tools accept a per-call `project_uid`, and write tools that need one take it as their own argument.
+- Your account lacks tenant-wide access. Pass `project_uid` on the failing call to scope it to a project you can access — most read tools accept a per-call `project_uid` (scoping is per call; there is no default-project setting), and write tools that need one take it as their own argument.
+- `read_cloud_accounts`, `read_packs` and `read_registries` are tenant-wide by design and take no `project_uid` — passing one is rejected as an invalid-parameter error, not an authorization error.
 
 **Skills don't appear in `/help`**
 - Run `/reload-plugins`, or confirm the install with `claude plugin details palette@palette-agent-toolkit`.

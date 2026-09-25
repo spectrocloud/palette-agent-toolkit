@@ -1,7 +1,7 @@
 {
   "name": "palette",
   "description": "Connect your AI assistant to Palette — query clusters, diagnose issues, manage infrastructure using natural language.",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "author": {
     "name": "Spectro Cloud"
   },
@@ -28,6 +28,18 @@
       "type": "string",
       "title": "Custom CA file path",
       "description": "Optional. CA bundle path for a self-hosted Palette behind a private CA."
+    },
+    "allow_write": {
+      "type": "boolean",
+      "title": "Enable write tools",
+      "description": "Turns on mutating tools (create_*, update_*, delete_*). Off by default.",
+      "default": false
+    },
+    "allow_direct_ssh": {
+      "type": "boolean",
+      "title": "Enable direct-SSH edge tools",
+      "description": "Turns on run_edge_command and the read-only edge SSH tools, which dial caller-supplied hosts with caller-supplied credentials. Off by default.",
+      "default": false
     }
   }
 }
