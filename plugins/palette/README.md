@@ -43,7 +43,7 @@ The plugin is **self-contained** — it downloads and checksum-verifies the corr
 
 ```bash
 REPO="spectrocloud/palette-agent-toolkit"
-curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.6.0/install.sh"
+curl -fsSLO "https://raw.githubusercontent.com/${REPO}/v0.6.1/install.sh"
 less install.sh          # read it before running
 sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR changes the location
 ```
@@ -51,7 +51,7 @@ sh install.sh            # --version vA.B.C pins the binary; --bin-dir DIR chang
 Or in one line (prefer the read-first form on shared or production hosts):
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.6.0/install.sh" | sh
+curl -fsSL "https://raw.githubusercontent.com/spectrocloud/palette-agent-toolkit/v0.6.1/install.sh" | sh
 ```
 
 ### Manual install
