@@ -6,7 +6,7 @@
 # stdout is the MCP JSON-RPC channel: diagnostics go to stderr, never stdout.
 set -eu
 
-VERSION="v0.6.0"
+VERSION="v0.6.1"
 REPO="spectrocloud/palette-agent-toolkit"
 
 tmp=""
