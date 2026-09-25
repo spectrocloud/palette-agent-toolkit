@@ -151,11 +151,37 @@ if [[ "${1:-}" == "--cleanup" ]]; then
     kubectl delete clusterrolebinding "view-binding-${_sa}-${_ns}" --ignore-not-found || _cleanup_rc=1
     kubectl delete clusterrolebinding "diagnose-cluster-capi-read-binding-${_sa}-${_ns}" --ignore-not-found || _cleanup_rc=1
     kubectl delete sa "${_sa}" -n "${_ns}" --ignore-not-found || _cleanup_rc=1
+
+    # diagnose-cluster-capi-read-role is SHARED — every concurrent session
+    # binds its own ClusterRoleBinding (diagnose-cluster-capi-read-binding-*)
+    # to this one role. Deleting it unconditionally here (as this script used
+    # to) strips CAPI/node read access from any OTHER session still bound to
+    # it: session A cleans up mid-way through session B's diagnosis, B's
+    # binding survives but the role it points at is gone, and B silently
+    # loses `kubectl get nodes`/CAPI access until the next mint recreates the
+    # role (which does not repair B's already-broken session). Only delete
+    # the role once no other binding for it remains.
+    #
+    # This is a best-effort ref-count, not an atomic one: a `list` then
+    # `delete` is two separate calls, so a binding created by a concurrent
+    # mint in between is a real (if narrow) TOCTOU window. Closing that fully
+    # needs either a per-credential ClusterRole (no sharing at all) or a
+    # server-side ownership mechanism (e.g. an ownerRef/finalizer chain) —
+    # out of scope for a cleanup script; flagged as an accepted residual risk
+    # rather than silently left as the previous unconditional-delete bug.
+    _remaining_bindings=$(kubectl get clusterrolebinding -o name 2>/dev/null | grep -c '^clusterrolebinding\.rbac\.authorization\.k8s\.io/diagnose-cluster-capi-read-binding-' || true)
+    if [ "${_remaining_bindings:-0}" -eq 0 ]; then
+        kubectl delete clusterrole "diagnose-cluster-capi-read-role" --ignore-not-found || _cleanup_rc=1
+        _role_msg="ClusterRole diagnose-cluster-capi-read-role removed too (no other session was bound to it) — the next mint recreates it"
+    else
+        _role_msg="ClusterRole diagnose-cluster-capi-read-role left in place — ${_remaining_bindings} other session(s) still bound to it"
+    fi
+
     if [ "${_cleanup_rc}" -ne 0 ]; then
         echo "ERROR: one or more cluster-side deletes failed for ${_sa}/${_ns} — ServiceAccount and/or ClusterRoleBindings may still exist and need manual removal. Local credential files were removed regardless." >&2
         exit 1
     fi
-    echo "cleaned up RO artifacts for ${_sa}/${_ns} (shared ClusterRoles view + diagnose-cluster-capi-read-role left intact)"
+    echo "cleaned up RO artifacts for ${_sa}/${_ns} (${_role_msg}; the built-in view ClusterRole is left untouched)"
     exit 0
 fi
 

@@ -9,6 +9,8 @@ description: Morning standup / fleet health check — use for "how's the fleet?"
 
 Scan the entire tenant for clusters and edge hosts that are unhealthy, in error, or stuck. This is a breadth-first scan — it tells you *what* is wrong, not *why*. For root cause on a single resource, use `diagnose-cluster` or `diagnose-edge`.
 
+**Use case:** the platform admin's morning fleet check — one skill run surfaces fleet health across every cluster and edge host in the tenant, instead of opening each one individually. E.g. a platform admin for a San Francisco region with 30 store clusters runs this once and checks all 30 at the same time.
+
 ## Steps
 
 1. **Scan clusters in Error** (the "something is broken" signal)
@@ -47,3 +49,6 @@ Scan the entire tenant for clusters and edge hosts that are unhealthy, in error,
 - **Clusters are filtered server-side** — `read_cluster_status` filters at the API, so the result set is bounded to only the matching resources and works on fleets larger than the 50-item page limit. If a single filter exceeds 50 results, paginate via `continue` (rare for the degraded set).
 - ⚠ **Edge hosts are filtered CLIENT-side** — `read_edge_hosts` fetches the full tenant edge-host list and filters inside the MCP server. On very large edge fleets this transfers the whole list over the wire even though only the degraded subset is returned. Acceptable for v1; note it if a tenant has thousands of edge hosts.
 - Strictly read-only. It never offers remediation — that belongs to the diagnose-* skills which have the per-resource context.
+
+## Backlog
+- 📌 **Certificate-expiry checking** (requested, not built today) — scan Kubernetes certs, Harbor/Zot registry certs, and detect `cert-manager` presence across the fleet, surfaced as another category in this same breadth-first scan. Parked post-demo.

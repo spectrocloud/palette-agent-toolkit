@@ -6,7 +6,7 @@
 # stdout is the MCP JSON-RPC channel: diagnostics go to stderr, never stdout.
 set -eu
 
-VERSION="v0.5.1"
+VERSION="v0.6.0"
 REPO="spectrocloud/palette-agent-toolkit"
 
 tmp=""
@@ -39,6 +39,32 @@ if [ -z "${PALETTE_HOST:-}" ] || { [ -z "${PALETTE_API_KEY:-}" ] && [ -z "${PALE
 fi
 if [ -n "${PALETTE_API_KEY:-}" ] && [ -n "${PALETTE_AUTH_TOKEN:-}" ]; then
   log "warning: both PALETTE_API_KEY and PALETTE_AUTH_TOKEN are set; configure only one."
+fi
+
+# Defensive: if Claude Code's userConfig substitution ever produces an empty
+# value for an untouched boolean toggle, the arg arrives as e.g.
+# `--allow-write=` with nothing after `=`. Confirmed directly: the binary's
+# own flag parser then exits 2 ("invalid boolean value \"\" for -allow-write:
+# parse error") instead of falling back to its documented default. Drop any
+# such empty-valued flag here, before either exec path below forwards "$@",
+# so it falls through to the binary's own default instead of crashing.
+_argc=0
+for _arg in "$@"; do
+  case "${_arg}" in
+    # any future toggle (e.g. --allow-tunnel-ssh) needs adding here too, or it reintroduces this crash
+    --allow-write=|--allow-direct-ssh=)
+      log "dropping empty-valued flag: ${_arg} (falls through to binary default)"
+      continue ;;
+  esac
+  if [ "${_argc}" -eq 0 ]; then
+    set -- "${_arg}"
+  else
+    set -- "$@" "${_arg}"
+  fi
+  _argc=$((_argc + 1))
+done
+if [ "${_argc}" -eq 0 ]; then
+  set --
 fi
 
 # tools needed on every path (incl. offline cache hit)
