@@ -1,5 +1,5 @@
 {
-  "last_synced_sha": "9377f26d29756fcec6811c531cf938fa200901e2",
-  "synced_from_tag": "v0.6.1",
+  "last_synced_sha": "ea1d3b6cc29847028f734487dd756577b54703c7",
+  "synced_from_tag": "v0.6.2",
   "note": "Bootstrap marker for the automated sync job. Set to main's HEAD at bootstrap time (2026-08-14). Updated automatically by each sync run thereafter - do not hand-edit."
 }
