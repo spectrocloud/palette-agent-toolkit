@@ -8,6 +8,12 @@ Connect your AI assistant to [Spectro Cloud Palette](https://www.spectrocloud.co
 
 Two paths. The plugin is for Claude Code and Claude Desktop, and bundles the binary for you. Everyone else installs the binary directly.
 
+**Give this prompt to your agent to install the Palette MCP:**
+
+```
+Install the Palette MCP by following the instructions in https://github.com/spectrocloud/palette-agent-toolkit/blob/main/plugins/palette/CONFIGURE_MCP.md. Ask me for my Palette URL, project UID, and API key before you start.
+```
+
 ### Plugin (recommended)
 
 The plugin is self-contained — on first use it downloads and checksum-verifies the correct `palette-mcp` binary for your OS and architecture.

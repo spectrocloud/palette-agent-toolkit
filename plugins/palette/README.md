@@ -111,6 +111,8 @@ This pre-flight validates API-key auth only. If you use `PALETTE_AUTH_TOKEN`, co
 
 The steps above configure one Palette tenant/host — the **default** profile. To target more than one from the same session (dev vs. prod, or a second customer tenant) without restarting your client, add named profiles to `~/.palette/auth_profiles.yaml` and pass `auth_profile: "<name>"` on any tool call. Your plugin **Configure options** (or exported env vars) keep working unchanged as the implicit `default` profile — this is additive, not a replacement.
 
+To let an assistant do this setup for you, give it the prompt in [CONFIGURE_MCP.md](CONFIGURE_MCP.md).
+
 Add a profile with the binary's own wizard rather than hand-editing YAML:
 
 ```bash
